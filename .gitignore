@@ -435,3 +435,6 @@ appsettings.*.local.json
 
 # Build-coordination scratch files; must never be committed
 .superpowers/
+
+# Serena MCP local project config (generated per-machine)
+.serena/
