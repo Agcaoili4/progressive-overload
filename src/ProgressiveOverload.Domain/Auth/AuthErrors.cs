@@ -4,9 +4,14 @@ namespace ProgressiveOverload.Domain.Auth;
 
 public static class AuthErrors
 {
+    // "Email or password is incorrect" covers both a wrong password and an unknown
+    // email on purpose. Two different messages would let someone probe the login form
+    // to find out which addresses are registered.
     public static readonly Error InvalidCredentials =
         new("auth.invalid_credentials", "Email or password is incorrect.");
 
+    // Same idea below: the three refresh failures share one message so the client
+    // learns nothing, but keep separate codes so our logs can tell them apart.
     public static readonly Error RefreshTokenInvalid =
         new("auth.refresh_token_invalid", "Your session has expired. Please sign in again.");
 
