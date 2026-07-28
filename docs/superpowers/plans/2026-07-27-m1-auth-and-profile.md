@@ -230,6 +230,14 @@ git commit -m "chore: scaffold solution, compiler settings, and local Postgres"
 - Consumes: nothing
 - Produces: `Error(string Code, string Message)`; `Result` with `.Success()`, `.Failure(Error)`, `.IsSuccess`, `.Error`; `Result<T>` with `.Success(T)`, `.Failure(Error)`, `.Value`. Every handler in this plan returns one of these.
 
+- [ ] **Step 0: Delete the scaffold smoke test**
+
+```bash
+rm tests/ProgressiveOverload.Domain.Tests/SmokeTest.cs
+```
+
+It existed only to prove the toolchain ran (Task 1). Real tests arrive in this task, so it now asserts nothing about the system and would be flagged as dead test weight.
+
 - [ ] **Step 1: Write the failing tests**
 
 Create `tests/ProgressiveOverload.Domain.Tests/Common/ResultTests.cs`:
@@ -1301,6 +1309,14 @@ public interface IPasswordHasher
 {
     string Hash(string password);
     bool Verify(string hash, string password);
+
+    /// <summary>
+    /// Performs a hash verification against a throwaway hash and always returns false.
+    /// Called when no user matched, so that a failed login costs the same time whether
+    /// or not the email exists — otherwise response timing reveals which emails are
+    /// registered. Lives behind the port so Application never touches a hashing library.
+    /// </summary>
+    bool VerifyDummy(string password);
 }
 ```
 
@@ -1361,12 +1377,25 @@ public sealed class PasswordHasherAdapter : IPasswordHasher
 {
     private readonly PasswordHasher<User> _inner = new();
 
+    /// <summary>
+    /// A real hash of a random string, computed once at startup. Verifying against it
+    /// costs the same as verifying a genuine user's password.
+    /// </summary>
+    private static readonly string DummyHash =
+        new PasswordHasher<User>().HashPassword(null!, Guid.NewGuid().ToString());
+
     public string Hash(string password) => _inner.HashPassword(null!, password);
 
     public bool Verify(string hash, string password) =>
         _inner.VerifyHashedPassword(null!, hash, password) is
             PasswordVerificationResult.Success or
             PasswordVerificationResult.SuccessRehashNeeded;
+
+    public bool VerifyDummy(string password)
+    {
+        _inner.VerifyHashedPassword(null!, DummyHash, password);
+        return false;
+    }
 }
 ```
 
@@ -2140,12 +2169,13 @@ public sealed class LoginHandler(
         var email = command.Email.Trim().ToLowerInvariant();
         var user = await db.Users.SingleOrDefaultAsync(u => u.Email == email, ct);
 
-        // Hash even when the user is absent, so response time does not reveal
-        // whether the email is registered.
-        var hashToVerify = user?.PasswordHash ?? DummyHash.Value;
-        var passwordValid = passwordHasher.Verify(hashToVerify, command.Password);
+        // Spend the same time hashing whether or not the account exists, so response
+        // timing cannot be used to discover which emails are registered.
+        var passwordValid = user?.PasswordHash is { } hash
+            ? passwordHasher.Verify(hash, command.Password)
+            : passwordHasher.VerifyDummy(command.Password);
 
-        if (user is null || user.PasswordHash is null || !passwordValid)
+        if (!passwordValid)
             return Result<AuthResult>.Failure(AuthErrors.InvalidCredentials);
 
         var (raw, tokenHash) = tokens.CreateRefreshToken();
@@ -2159,21 +2189,9 @@ public sealed class LoginHandler(
             raw));
     }
 }
-
-internal static class DummyHash
-{
-    /// <summary>
-    /// A real PBKDF2 hash of a random string, computed once. Verifying against it costs
-    /// the same as verifying a genuine user, which closes the timing side channel that
-    /// would otherwise reveal whether an email exists.
-    /// </summary>
-    public static readonly string Value =
-        new Microsoft.AspNetCore.Identity.PasswordHasher<object>()
-            .HashPassword(new object(), Guid.NewGuid().ToString());
-}
 ```
 
-`user.PasswordHash is null` covers the Google-only account: someone who signed up with Google has no password, and must not be able to authenticate by supplying one.
+The `user?.PasswordHash is { } hash` pattern covers the Google-only account in the same expression: someone who signed up with Google has no password hash, so they fall to `VerifyDummy` and are rejected — they must not be able to authenticate by supplying a password. The timing defense lives in `Infrastructure` behind `IPasswordHasher.VerifyDummy` (Task 6), so this handler never touches a hashing library directly.
 
 - [ ] **Step 4: Map the endpoint**
 
