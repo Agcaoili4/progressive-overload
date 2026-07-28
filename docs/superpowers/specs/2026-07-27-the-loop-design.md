@@ -112,12 +112,26 @@ versioned configuration, not code.
 
 **Definitions used below**
 
-- A **qualifying set** has reps ∈ [3, 15] **and** load ≥ 65% of the user's **baseline e1RM**
-  for that exercise.
+- A **qualifying set** is one whose **own estimated 1RM is ≥ 80% of the user's baseline
+  e1RM** for that exercise. Reps must also fall in [3, 15], but only as a sanity bound —
+  Epley becomes unreliable outside that range — not as a scoring rule.
 - **Baseline e1RM** is the user's best recorded e1RM for that exercise **as of the moment the
   week opened**, held fixed for the whole week. It must *not* float with mid-week PRs —
   otherwise setting a PR on Tuesday raises the threshold and retroactively disqualifies
   Monday's sets.
+
+  *Why intensity is measured this way.* A flat load threshold (e.g. "≥ 65% of best") admits
+  easy sets at low reps — 5 reps at 65% is a warmup, not work — while rejecting genuinely
+  hard high-rep sets. Comparing the set's own e1RM to baseline asks the right question: *how
+  close to your current capacity was this set?* It behaves correctly at every rep range and
+  scales identically for a 315 lb squat and a 25 lb lateral raise.
+
+  *Why not a bodyweight-relative threshold.* Considered and rejected. Bodyweight multiples
+  mean radically different things per lift (deadlifting bodyweight is novice, overhead
+  pressing it is near-elite), they award zero to any beginner not yet at that standard —
+  precisely the user who most needs motivation — and they are meaningless for isolation,
+  dumbbell, and machine work. Effort must be measured against the user's own capacity, which
+  is what "push yourself to your limits" actually means.
 - **Muscle group** means the exercise's `primary_muscle_group` from the catalog. Secondary
   involvement does not count toward caps.
 - Sessions are **ordered by `performed_at`** within the week.
@@ -140,7 +154,7 @@ Score **qualifying sets**, not tonnage.
 - **Capped at 12 qualifying sets per muscle group per week.** Beyond the cap, 0 pts.
 
 Tonnage is rejected because it rewards heavy people for being heavy and rewards junk volume
-linearly. The load threshold excludes warmups automatically. The per-muscle cap sits roughly
+linearly. The intensity rule excludes warmups automatically. The per-muscle cap sits roughly
 where hypertrophy research places productive weekly volume, so the cap encodes good practice
 — you cannot win by doing twenty sets of curls. This is the anti-junk-volume mechanism, and
 a cap is preferable to a penalty because it teaches rather than punishes.
