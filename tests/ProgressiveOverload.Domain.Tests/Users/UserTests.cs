@@ -1,10 +1,8 @@
 using ProgressiveOverload.Domain.Users;
-
 using Shouldly;
 
 namespace ProgressiveOverload.Domain.Tests.Users;
 
-// Class that houses methods that has the logic for certain areas.
 public class UserTests
 {
     private static User AValidUser() =>
