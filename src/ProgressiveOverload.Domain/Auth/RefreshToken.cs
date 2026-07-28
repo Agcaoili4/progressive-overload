@@ -43,6 +43,9 @@ public sealed class RefreshToken
 
     public Result Redeem(DateTimeOffset now)
     {
+        // Order matters. A token presented twice means it was probably stolen, and the
+        // caller reacts by killing the whole family — so reuse must be reported even if
+        // the token has since been revoked or expired.
         if (RedeemedAt is not null) return Result.Failure(AuthErrors.RefreshTokenReused);
         if (RevokedAt is not null) return Result.Failure(AuthErrors.RefreshTokenInvalid);
         if (now > ExpiresAt) return Result.Failure(AuthErrors.RefreshTokenExpired);
@@ -53,6 +56,8 @@ public sealed class RefreshToken
 
     public void Revoke()
     {
+        // ??= keeps the first revocation time. Revoking a family re-revokes tokens that
+        // are already dead, and we want when it actually happened.
         RevokedAt ??= DateTimeOffset.UtcNow;
     }
 }
