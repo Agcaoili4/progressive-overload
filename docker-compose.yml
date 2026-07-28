@@ -6,7 +6,9 @@ services:
       POSTGRES_PASSWORD: localdev
       POSTGRES_DB: progressiveoverload
     ports:
-      - "5433:5432"
+      # 5432 is the system default and 5433 belongs to another local project;
+      # verified free before assigning.
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

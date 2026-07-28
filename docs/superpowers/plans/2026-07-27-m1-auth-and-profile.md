@@ -168,7 +168,9 @@ services:
       POSTGRES_PASSWORD: localdev
       POSTGRES_DB: progressiveoverload
     ports:
-      - "5433:5432"
+      # 5432 is the system default and 5433 belongs to another local project;
+      # verified free before assigning.
+      - "5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -1128,7 +1130,7 @@ public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<App
     public AppDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseNpgsql("Host=localhost;Port=5433;Database=progressiveoverload;Username=po;Password=localdev")
+            .UseNpgsql("Host=localhost;Port=5434;Database=progressiveoverload;Username=po;Password=localdev")
             .UseSnakeCaseNamingConvention()
             .Options;
 
