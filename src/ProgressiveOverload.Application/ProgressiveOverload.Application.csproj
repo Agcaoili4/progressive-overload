@@ -4,6 +4,23 @@
     <ProjectReference Include="..\ProgressiveOverload.Domain\ProgressiveOverload.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <!--
+      Pinned explicitly (not PrivateAssets) so this version flows to downstream projects.
+      Without it, Microsoft.EntityFrameworkCore.Design privately pulls Relational 10.0.10 for this
+      project only, while Npgsql.EntityFrameworkCore.PostgreSQL's floor (10.0.4) is what leaks
+      downstream, producing an MSB3277 assembly version conflict in Infrastructure/Api/tests.
+    -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
