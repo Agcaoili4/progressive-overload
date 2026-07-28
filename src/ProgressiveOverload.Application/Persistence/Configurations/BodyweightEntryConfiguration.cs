@@ -14,6 +14,8 @@ public sealed class BodyweightEntryConfiguration : IEntityTypeConfiguration<Body
         builder.Property(e => e.WeightKg).HasPrecision(7, 2).IsRequired();
         builder.Property(e => e.RecordedAt).IsRequired();
 
+        // One user's entries, newest first — the order every weight chart and history
+        // screen asks for. Ascending on UserId, descending on RecordedAt.
         builder.HasIndex(e => new { e.UserId, e.RecordedAt }).IsDescending(false, true);
     }
 }

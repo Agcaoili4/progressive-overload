@@ -3,6 +3,11 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace ProgressiveOverload.Application.Persistence;
 
+/// <summary>
+/// Used only by the `dotnet ef` command line when generating migrations. The app at runtime
+/// builds its DbContext from configuration instead, so this connection string is a local
+/// development convenience and not a secret.
+/// </summary>
 public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
     public AppDbContext CreateDbContext(string[] args)
