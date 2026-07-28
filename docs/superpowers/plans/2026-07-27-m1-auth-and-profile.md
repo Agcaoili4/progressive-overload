@@ -113,7 +113,7 @@ tests/
 
 **Interfaces:**
 - Consumes: nothing
-- Produces: a solution where `dotnet test` runs green, and a Postgres container on `localhost:5433`
+- Produces: a solution where `dotnet test` runs green, and a Postgres container on `localhost:5434`
 
 - [ ] **Step 1: Create the solution and projects**
 
@@ -183,7 +183,7 @@ volumes:
   pgdata:
 ```
 
-Port 5433 deliberately, so this never collides with a Postgres you already have on 5432. No Redis service — see spec §10.
+Port 5434 deliberately: 5432 is the system default and 5433 is taken by another local project on this machine. Check the port is actually free (`lsof -nP -iTCP:<port> -sTCP:LISTEN`) rather than assuming. No Redis service — see spec §10.
 
 - [ ] **Step 4: Add Shouldly and write a smoke test**
 
