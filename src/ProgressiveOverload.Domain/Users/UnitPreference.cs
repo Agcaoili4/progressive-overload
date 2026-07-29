@@ -1,6 +1,8 @@
 namespace ProgressiveOverload.Domain.Users;
 
-/// <summary>Display only. All weights are persisted in kilograms.</summary>
+/*
+    Display only. All weights are persisted in kilograms.
+*/
 public enum UnitPreference
 {
     Metric = 1,

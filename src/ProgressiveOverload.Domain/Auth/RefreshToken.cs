@@ -18,13 +18,15 @@ public sealed class RefreshToken
     public Guid Id { get; private set; }
     public Guid UserId { get; private set; }
 
-    /// <summary>SHA-256 of the opaque token. The raw token is never persisted.</summary>
+    /*
+        SHA-256 of the opaque token. The raw token is never persisted.
+    */
     public string TokenHash { get; private set; } = null!;
 
-    /// <summary>
-    /// Shared by every token descended from one sign-in. Reuse of any token in the family
-    /// revokes the entire family.
-    /// </summary>
+    /*
+        Shared by every token descended from one sign-in. Reuse of any token in the family
+        revokes the entire family.
+    */
     public Guid FamilyId { get; private set; }
 
     public DateTimeOffset ExpiresAt { get; private set; }
