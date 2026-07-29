@@ -1,6 +1,22 @@
+using FluentValidation;
+using ProgressiveOverload.Api.Endpoints;
+using ProgressiveOverload.Application.Users.Register;
+using ProgressiveOverload.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterValidator>();
+builder.Services.AddScoped<RegisterHandler>();
+builder.Services.AddProblemDetails();
+
 var app = builder.Build();
 
-app.MapGet("/", () => "Hello World!");
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+app.MapAuthEndpoints();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.Run();
+
+public partial class Program;
