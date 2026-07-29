@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Npgsql;
 using ProgressiveOverload.Api.Extensions;
 using ProgressiveOverload.Application.Abstractions;
 using ProgressiveOverload.Application.Users;
@@ -35,9 +36,13 @@ public static class AuthEndpoints
             {
                 result = await handler.Handle(command, ct);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex) when (IsUniqueEmailViolation(ex))
             {
-                // Lost the race on the unique email index.
+                // Lost the race on the unique email index. The `when` filter means any
+                // other DbUpdateException (FK violation, check-constraint failure,
+                // transient connection fault) is NOT caught here and propagates instead -
+                // those must surface as a real 500, not get disguised as a 409 that tells
+                // the client the wrong thing happened.
                 return UserErrors.EmailAlreadyRegistered.ToProblem();
             }
 
@@ -48,6 +53,14 @@ public static class AuthEndpoints
         })
         .AllowAnonymous();
     }
+
+    // Narrowly matches a unique-violation on the users-email index specifically, rather
+    // than trusting "it's a DbUpdateException" to mean "duplicate email". SqlState 23505
+    // is Postgres's unique-violation code; the constraint name check rules out the
+    // (also-unique) google_subject index or any future unique constraint on this table.
+    private static bool IsUniqueEmailViolation(DbUpdateException ex) =>
+        ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } pg
+            && pg.ConstraintName == "ix_users_email";
 
     public static void SetRefreshCookie(this HttpContext http, string raw, int days) =>
         http.Response.Cookies.Append(RefreshCookieName, raw, new CookieOptions
