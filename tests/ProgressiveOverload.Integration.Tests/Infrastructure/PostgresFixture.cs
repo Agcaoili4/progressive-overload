@@ -4,12 +4,12 @@ using Testcontainers.PostgreSql;
 
 namespace ProgressiveOverload.Integration.Tests.Infrastructure;
 
-/// <summary>
-/// Starts a throwaway PostgreSQL container for integration tests and applies the real
-/// migrations to it. Tests run against actual Postgres rather than EF's in-memory
-/// provider, because in-memory ignores unique indexes and other constraints — it would
-/// pass tests that production fails.
-/// </summary>
+/*
+    Starts a throwaway PostgreSQL container for integration tests and applies the real
+    migrations to it. Tests run against actual Postgres rather than EF's in-memory
+    provider, because in-memory ignores unique indexes and other constraints — it would
+    pass tests that production fails.
+*/
 public sealed class PostgresFixture : IAsyncLifetime
 {
     // Separate from the docker-compose Postgres you run locally. Testcontainers starts

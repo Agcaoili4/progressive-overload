@@ -38,10 +38,10 @@ public sealed class User
     public DateTimeOffset? CurrentBodyweightAt { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
-    /// <summary>
-    /// Rotated on password change or global sign-out. Embedded in access tokens so that
-    /// already-issued JWTs can be invalidated without a token blacklist.
-    /// </summary>
+    /*
+        Rotated on password change or global sign-out. Embedded in access tokens so that
+        already-issued JWTs can be invalidated without a token blacklist.
+    */
     public Guid SecurityStamp { get; private set; }
 
     public IReadOnlyList<BodyweightEntry> BodyweightEntries => _bodyweightEntries;
