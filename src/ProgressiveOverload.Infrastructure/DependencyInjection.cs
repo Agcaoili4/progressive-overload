@@ -39,6 +39,12 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<ICurrentUser, CurrentUser>();
 
+        // No ValidateOnStart here, unlike JwtOptions above: Google sign-in must stay
+        // optional so the app still boots and serves email/password auth when it is not
+        // configured. GoogleTokenValidator fails closed itself when ClientId is blank.
+        services.Configure<GoogleAuthOptions>(configuration.GetSection(GoogleAuthOptions.SectionName));
+        services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
+
         return services;
     }
 }
