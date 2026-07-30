@@ -120,6 +120,10 @@ public sealed class RefreshRotationTests(PostgresFixture fixture) : IDisposable
         // Whichever request won the race, its newly issued token must also be dead -
         // proving the whole family (including the "winner") was revoked once the
         // conditional claim detected it was racing another redemption of the same token.
+        // This is now guaranteed rather than timing-dependent: even if the loser's
+        // RevokeFamily commits before the winner's insert lands (so the sweep misses the
+        // brand-new row), the winner's post-insert re-check in RefreshHandler catches the
+        // family revocation and revokes itself before returning success.
         var winner = responses.Single(r => r.StatusCode == HttpStatusCode.OK);
         var winnerToken = ExtractRefreshCookie(winner);
         var afterRace = await client.SendAsync(RefreshRequest(winnerToken));

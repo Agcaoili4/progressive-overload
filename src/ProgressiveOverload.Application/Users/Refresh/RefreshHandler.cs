@@ -76,6 +76,22 @@ public sealed class RefreshHandler(
 
         await db.SaveChangesAsync(ct);
 
+        // A racing loser that lost the claim above revokes the family with
+        // `WHERE family_id = F AND revoked_at IS NULL`, but that UPDATE can only ever
+        // touch rows that already exist. If the loser's revoke commits before this
+        // request's SaveChangesAsync above lands, the row we just inserted did not exist
+        // yet and the revocation cannot have reached it - a locked row still needs a row
+        // to lock, and this one has none until now. So after inserting, check back: if
+        // the family was revoked while we were writing, this session is compromised too.
+        // Revoke again (this sweep now catches the token we just inserted) and fail.
+        var familyRevoked = await db.RefreshTokens
+            .AnyAsync(t => t.FamilyId == stored.FamilyId && t.RevokedAt != null, ct);
+        if (familyRevoked)
+        {
+            await RevokeFamily(stored.FamilyId, ct);
+            return Result<AuthResult>.Failure(AuthErrors.RefreshTokenReused);
+        }
+
         return Result<AuthResult>.Success(new AuthResult(
             new AuthResponse(tokens.CreateAccessToken(user), user.Id, user.DisplayName),
             raw));
