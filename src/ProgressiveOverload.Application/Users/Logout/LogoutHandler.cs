@@ -9,10 +9,10 @@ public sealed class LogoutHandler(AppDbContext db, ITokenService tokens, IClock 
 {
     public async Task<Result> Handle(string? rawToken, CancellationToken ct)
     {
-        // Logout is always reported as successful, even for a missing, unknown, or
-        // already-revoked token. Telling an unauthenticated caller whether a token was
-        // valid gives away information for no benefit - it just hands an attacker a way
-        // to probe which tokens are live.
+        // Logout always reports success, even for a missing, unknown, or already-revoked
+        // token. Telling an unauthenticated caller whether a token was valid gives away
+        // information for no benefit - it hands an attacker a way to probe which tokens
+        // are live.
         if (string.IsNullOrWhiteSpace(rawToken)) return Result.Success();
 
         var hash = tokens.HashRefreshToken(rawToken);

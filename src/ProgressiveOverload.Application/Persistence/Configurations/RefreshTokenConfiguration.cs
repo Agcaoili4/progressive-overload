@@ -11,7 +11,7 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
         builder.ToTable("refresh_tokens");
         builder.HasKey(t => t.Id);
 
-        // 64 chars because we store a SHA-256 hash as hex, never the token itself.
+        // 64 chars: a SHA-256 hash in hex. The token itself is never stored.
         // Every refresh request looks the token up by this hash, hence the unique index.
         builder.Property(t => t.TokenHash).HasMaxLength(64).IsRequired();
         builder.HasIndex(t => t.TokenHash).IsUnique();

@@ -11,7 +11,7 @@ public static class AuthErrors
         new("auth.invalid_credentials", "Email or password is incorrect.");
 
     // Same idea below: the three refresh failures share one message so the client
-    // learns nothing, but keep separate codes so our logs can tell them apart.
+    // learns nothing, but keep separate codes so logs can tell them apart.
     public static readonly Error RefreshTokenInvalid =
         new("auth.refresh_token_invalid", "Your session has expired. Please sign in again.");
 

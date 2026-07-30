@@ -12,9 +12,11 @@ namespace ProgressiveOverload.Integration.Tests.Infrastructure;
 */
 public sealed class PostgresFixture : IAsyncLifetime
 {
-    // Separate from the docker-compose Postgres you run locally. Testcontainers starts
-    // and destroys this one per test run, on a random port, so tests never collide with
-    // your development data.
+    /*
+        Separate from the docker-compose Postgres run locally. Testcontainers starts and
+        destroys this one per test run, on a random port, so tests never collide with
+        local development data.
+    */
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder("postgres:17-alpine").Build();
 
     public string ConnectionString => _container.GetConnectionString();
@@ -38,7 +40,9 @@ public sealed class PostgresFixture : IAsyncLifetime
     public Task DisposeAsync() => _container.DisposeAsync().AsTask();
 }
 
-// Lets every test class marked [Collection(nameof(PostgresCollection))] share one
-// container instead of starting a fresh one each time, which would be very slow.
+/*
+    Lets every test class marked [Collection(nameof(PostgresCollection))] share one
+    container instead of starting a fresh one each time, which would be very slow.
+*/
 [CollectionDefinition(nameof(PostgresCollection))]
 public sealed class PostgresCollection : ICollectionFixture<PostgresFixture>;

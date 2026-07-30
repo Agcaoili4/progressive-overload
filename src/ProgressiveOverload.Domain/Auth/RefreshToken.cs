@@ -58,8 +58,8 @@ public sealed class RefreshToken
 
     public void Revoke()
     {
-        // ??= keeps the first revocation time. Revoking a family re-revokes tokens that
-        // are already dead, and we want when it actually happened.
+        // ??= preserves the first revocation time. Re-revoking an already-dead token
+        // must not overwrite when it actually happened.
         RevokedAt ??= DateTimeOffset.UtcNow;
     }
 }

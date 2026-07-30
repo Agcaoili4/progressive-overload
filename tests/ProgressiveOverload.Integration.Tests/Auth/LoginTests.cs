@@ -112,12 +112,11 @@ public sealed class LoginTests(PostgresFixture fixture) : IDisposable
         unknownBody["title"]!.ToString().ShouldBe(wrongBody["title"]!.ToString());
         unknownBody["code"]!.ToString().ShouldBe(wrongBody["code"]!.ToString());
 
-        // traceId is a per-request correlation id stamped by the framework's
-        // problem-details writer. It is uncorrelated with which email was tried or which
-        // failure occurred, so it is not an enumeration channel, and it is excluded here
-        // for that reason alone. Nothing else may be excluded: removing only traceId and
-        // then requiring the rest of the object to match means any OTHER field that
-        // differs between the two responses still fails this test.
+        // Only traceId is excluded, because it is a per-request correlation id stamped by
+        // the framework's problem-details writer, uncorrelated with which email was tried
+        // or which failure occurred - not an enumeration channel. Everything else must
+        // still match: any other field that differs between the two responses still fails
+        // this test.
         unknownBody.Remove("traceId");
         wrongBody.Remove("traceId");
         JsonNode.DeepEquals(unknownBody, wrongBody).ShouldBeTrue();
