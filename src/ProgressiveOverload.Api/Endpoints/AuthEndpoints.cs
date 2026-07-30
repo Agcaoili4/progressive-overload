@@ -5,6 +5,7 @@ using Npgsql;
 using ProgressiveOverload.Api.Extensions;
 using ProgressiveOverload.Application.Abstractions;
 using ProgressiveOverload.Application.Users;
+using ProgressiveOverload.Application.Users.Login;
 using ProgressiveOverload.Application.Users.Register;
 using ProgressiveOverload.Domain.Common;
 using ProgressiveOverload.Domain.Users;
@@ -50,6 +51,26 @@ public static class AuthEndpoints
 
             http.SetRefreshCookie(result.Value.RefreshTokenRaw, jwtOptions.Value.RefreshTokenDays);
             return Results.Created($"/api/v1/users/{result.Value.Response.UserId}", result.Value.Response);
+        })
+        .AllowAnonymous();
+
+        group.MapPost("/login", async (
+            LoginCommand command,
+            IValidator<LoginCommand> validator,
+            LoginHandler handler,
+            IOptions<JwtOptions> jwtOptions,
+            HttpContext http,
+            CancellationToken ct) =>
+        {
+            var validation = await validator.ValidateAsync(command, ct);
+            if (!validation.IsValid)
+                return Results.ValidationProblem(validation.ToDictionary());
+
+            var result = await handler.Handle(command, ct);
+            if (result.IsFailure) return result.Error.ToProblem();
+
+            http.SetRefreshCookie(result.Value.RefreshTokenRaw, jwtOptions.Value.RefreshTokenDays);
+            return Results.Ok(result.Value.Response);
         })
         .AllowAnonymous();
     }
