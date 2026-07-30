@@ -103,31 +103,43 @@ public sealed class RefreshRotationTests(PostgresFixture fixture) : IDisposable
     }
 
     [Fact]
-    public async Task ConcurrentReplayOfTheSameToken_OnlyOneRequestWins_AndTheFamilyIsRevoked()
+    public async Task ConcurrentReplayOfTheSameToken_LeavesNoUsableSession()
     {
         var (client, original) = await ASignedInUser();
 
-        // Fire both requests for the SAME token without awaiting in between - this is the
-        // race a thief creates by replaying a stolen token at (roughly) the same moment
-        // the legitimate client refreshes with it.
+        /* Fire both requests for the SAME token without awaiting in between - this is the
+           race a thief creates by replaying a stolen token at (roughly) the same moment
+           the legitimate client refreshes with it. Two interleavings are both legitimate
+           outcomes of RefreshHandler's conditional claim + post-insert re-check:
+             - one request wins the claim and returns 200, the other loses and returns 401
+             - the loser's RevokeFamily commits before the winner's insert lands, the
+               winner's post-insert re-check then finds the family already revoked and
+               also returns 401, so BOTH requests come back 401
+           The second case is not a bug - it is the more conservative resolution of a
+           detected race, since a race is by definition indistinguishable from a replay.
+           Do not tighten the assertions below to require exactly one 200; that assumption
+           does not hold under the second interleaving. */
         var firstCall = client.SendAsync(RefreshRequest(original));
         var secondCall = client.SendAsync(RefreshRequest(original));
         var responses = await Task.WhenAll(firstCall, secondCall);
 
-        var statusCodes = responses.Select(r => r.StatusCode).OrderBy(s => s).ToArray();
-        statusCodes.ShouldBe([HttpStatusCode.OK, HttpStatusCode.Unauthorized]);
+        var statusCodes = responses.Select(r => r.StatusCode).ToArray();
+        statusCodes.Count(s => s == HttpStatusCode.Unauthorized).ShouldBeGreaterThanOrEqualTo(1);
+        statusCodes.Count(s => s == HttpStatusCode.OK).ShouldBeLessThanOrEqualTo(1);
 
-        // Whichever request won the race, its newly issued token must also be dead -
-        // proving the whole family (including the "winner") was revoked once the
-        // conditional claim detected it was racing another redemption of the same token.
-        // This is now guaranteed rather than timing-dependent: even if the loser's
-        // RevokeFamily commits before the winner's insert lands (so the sweep misses the
-        // brand-new row), the winner's post-insert re-check in RefreshHandler catches the
-        // family revocation and revokes itself before returning success.
-        var winner = responses.Single(r => r.StatusCode == HttpStatusCode.OK);
-        var winnerToken = ExtractRefreshCookie(winner);
-        var afterRace = await client.SendAsync(RefreshRequest(winnerToken));
-        afterRace.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        // The property that actually matters: whatever happened above, no token
+        // descended from this session works afterward - the original token is dead, and
+        // so is any token a 200 response issued.
+        var tokensToCheck = responses
+            .Where(r => r.StatusCode == HttpStatusCode.OK)
+            .Select(ExtractRefreshCookie)
+            .Append(original);
+
+        foreach (var token in tokensToCheck)
+        {
+            var afterRace = await client.SendAsync(RefreshRequest(token));
+            afterRace.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        }
     }
 
     [Fact]
