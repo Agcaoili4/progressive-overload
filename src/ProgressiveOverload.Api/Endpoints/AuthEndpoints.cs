@@ -6,6 +6,7 @@ using ProgressiveOverload.Api.Extensions;
 using ProgressiveOverload.Application.Abstractions;
 using ProgressiveOverload.Application.Persistence.Configurations;
 using ProgressiveOverload.Application.Users;
+using ProgressiveOverload.Application.Users.GoogleSignIn;
 using ProgressiveOverload.Application.Users.Login;
 using ProgressiveOverload.Application.Users.Logout;
 using ProgressiveOverload.Application.Users.Refresh;
@@ -107,6 +108,24 @@ public static class AuthEndpoints
             await handler.Handle(http.Request.Cookies[RefreshCookieName], ct);
             http.ClearRefreshCookie();
             return Results.NoContent();
+        })
+        .AllowAnonymous();
+
+        group.MapPost("/google", async (
+            GoogleSignInCommand command,
+            GoogleSignInHandler handler,
+            IOptions<JwtOptions> jwtOptions,
+            HttpContext http,
+            CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(command.IdToken))
+                return AuthErrors.GoogleTokenInvalid.ToProblem();
+
+            var result = await handler.Handle(command, ct);
+            if (result.IsFailure) return result.Error.ToProblem();
+
+            http.SetRefreshCookie(result.Value.RefreshTokenRaw, jwtOptions.Value.RefreshTokenDays);
+            return Results.Ok(result.Value.Response);
         })
         .AllowAnonymous();
     }

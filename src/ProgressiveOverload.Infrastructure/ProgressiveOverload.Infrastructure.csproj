@@ -20,6 +20,7 @@
       package-pruning feature (NU1510, an error under TreatWarningsAsErrors) rejects an explicit
       PackageReference that duplicates it.
     -->
+    <PackageReference Include="Google.Apis.Auth" Version="1.75.0" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.21.0" />
   </ItemGroup>
 

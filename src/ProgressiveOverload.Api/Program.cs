@@ -1,5 +1,6 @@
 using FluentValidation;
 using ProgressiveOverload.Api.Endpoints;
+using ProgressiveOverload.Application.Users.GoogleSignIn;
 using ProgressiveOverload.Application.Users.Login;
 using ProgressiveOverload.Application.Users.Logout;
 using ProgressiveOverload.Application.Users.Refresh;
@@ -14,6 +15,7 @@ builder.Services.AddScoped<RegisterHandler>();
 builder.Services.AddScoped<LoginHandler>();
 builder.Services.AddScoped<RefreshHandler>();
 builder.Services.AddScoped<LogoutHandler>();
+builder.Services.AddScoped<GoogleSignInHandler>();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
