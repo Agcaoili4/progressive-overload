@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using ProgressiveOverload.Api.Extensions;
 using ProgressiveOverload.Application.Abstractions;
+using ProgressiveOverload.Application.Persistence.Configurations;
 using ProgressiveOverload.Application.Users;
 using ProgressiveOverload.Application.Users.Login;
 using ProgressiveOverload.Application.Users.Logout;
@@ -118,7 +119,7 @@ public static class AuthEndpoints
     */
     private static bool IsUniqueEmailViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } pg
-            && pg.ConstraintName == "ix_users_email";
+            && pg.ConstraintName == UserConfiguration.EmailUniqueIndexName;
 
     public static void SetRefreshCookie(this HttpContext http, string raw, int days) =>
         http.Response.Cookies.Append(RefreshCookieName, raw, new CookieOptions
