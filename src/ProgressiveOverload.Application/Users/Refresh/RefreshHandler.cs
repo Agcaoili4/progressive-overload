@@ -22,25 +22,47 @@ public sealed class RefreshHandler(
             return Result<AuthResult>.Failure(AuthErrors.RefreshTokenInvalid);
 
         var redemption = stored.Redeem(clock.UtcNow);
+
+        // stored.Redeem() above only mutates RedeemedAt on the tracked in-memory entity -
+        // it does not touch the database. We keep it purely for its ordered validation
+        // (reused/revoked/expired) and error codes. The actual durable write happens
+        // either through the conditional ExecuteUpdateAsync claim below or not at all in
+        // this method, so detach `stored` now to stop the change tracker from also queuing
+        // an UPDATE for this row. Without this, the later SaveChangesAsync in the success
+        // path would issue its own UPDATE for `stored` racing/duplicating the raw claim
+        // below, which is exactly the kind of two-writers-one-row situation this fix
+        // exists to eliminate.
+        db.Entry(stored).State = EntityState.Detached;
+
         if (redemption.IsFailure)
         {
             // Replaying a redeemed token means the token was captured — we cannot tell
             // whether we are talking to the thief or the victim, so end every session
             // descended from this sign-in and force a fresh login.
             if (redemption.Error == AuthErrors.RefreshTokenReused)
-            {
-                // ExecuteUpdateAsync runs immediately against the database and bypasses the
-                // change tracker, so `stored` (and any other tracked entity in this family)
-                // would be stale after this call. That is safe here only because we return
-                // right below without touching the change tracker again - there is no later
-                // SaveChangesAsync in this branch that could stomp on or disagree with what
-                // was just written.
-                await db.RefreshTokens
-                    .Where(t => t.FamilyId == stored.FamilyId && t.RevokedAt == null)
-                    .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, clock.UtcNow), ct);
-            }
+                await RevokeFamily(stored.FamilyId, ct);
 
             return Result<AuthResult>.Failure(redemption.Error);
+        }
+
+        // Durable, atomic claim of this token. The in-memory check above only proves
+        // RedeemedAt was null in the snapshot we loaded - it says nothing about what
+        // happened between that read and now. Two requests racing with the SAME token
+        // (a thief replaying alongside the legitimate client) can both pass the check
+        // above; this conditional UPDATE is a compare-and-swap that only one of them can
+        // win, because Postgres serializes concurrent UPDATEs against the same row.
+        var claimed = await db.RefreshTokens
+            .Where(t => t.Id == stored.Id && t.RedeemedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RedeemedAt, clock.UtcNow), ct);
+
+        if (claimed == 0)
+        {
+            // Lost the race: something else redeemed this exact token between our read
+            // and our write. We cannot tell whether that was the legitimate client or a
+            // thief who raced it, so this is indistinguishable from - and handled
+            // identically to - replaying an already-redeemed token: kill the family.
+            await RevokeFamily(stored.FamilyId, ct);
+            return Result<AuthResult>.Failure(AuthErrors.RefreshTokenReused);
         }
 
         var user = await db.Users.SingleOrDefaultAsync(u => u.Id == stored.UserId, ct);
@@ -58,4 +80,14 @@ public sealed class RefreshHandler(
             new AuthResponse(tokens.CreateAccessToken(user), user.Id, user.DisplayName),
             raw));
     }
+
+    private async Task RevokeFamily(Guid familyId, CancellationToken ct) =>
+        // ExecuteUpdateAsync runs immediately against the database and bypasses the
+        // change tracker. Every caller of this method returns a failure result right
+        // afterward without any further SaveChangesAsync in the same Handle call, so
+        // there is nothing left in this request that could disagree with what was just
+        // written.
+        await db.RefreshTokens
+            .Where(t => t.FamilyId == familyId && t.RevokedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, clock.UtcNow), ct);
 }
