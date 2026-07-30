@@ -12,6 +12,11 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
        sites instead of a silent divergence. */
     public const string EmailUniqueIndexName = "ix_users_email";
 
+    /* Same reasoning as EmailUniqueIndexName above: AuthEndpoints matches this exact string
+       against the Postgres constraint name to detect a concurrent-Google-sign-in race on the
+       filtered google_subject index. */
+    public const string GoogleSubjectUniqueIndexName = "ix_users_google_subject";
+
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.ToTable("users");
@@ -27,6 +32,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.GoogleSubject).HasMaxLength(255);
         builder.HasIndex(u => u.GoogleSubject)
             .IsUnique()
+            .HasDatabaseName(GoogleSubjectUniqueIndexName)
             .HasFilter("google_subject IS NOT NULL");
 
         builder.Property(u => u.DisplayName).HasMaxLength(User.MaxDisplayNameLength).IsRequired();

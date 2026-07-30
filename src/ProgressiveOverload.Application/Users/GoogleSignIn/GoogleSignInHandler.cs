@@ -35,16 +35,21 @@ public sealed class GoogleSignInHandler(
 
         var email = payload.Email.Trim().ToLowerInvariant();
 
-        // Look up by Google subject first, email second. The subject is Google's stable
-        // identifier and never changes; a user can change their email address at Google,
-        // so matching on email alone would eventually attach one person's sign-in to
-        // another person's account.
+        // Subject first, email second: Google subjects never change but a user's email
+        // can, so matching on email alone would eventually attach one person's sign-in
+        // to another person's account.
         var user = await db.Users.SingleOrDefaultAsync(u => u.GoogleSubject == payload.Subject, ct)
                    ?? await db.Users.SingleOrDefaultAsync(u => u.Email == email, ct);
 
         if (user is null)
         {
-            var creation = User.CreateFromGoogle(email, payload.Subject, payload.Name ?? email.Split('@')[0]);
+            var fallbackName = email.Split('@')[0];
+            // Truncated: the local part of an email can exceed MaxDisplayNameLength, and this
+            // only runs when Google gave no name, so a long address must not fail sign-in.
+            if (fallbackName.Length > User.MaxDisplayNameLength)
+                fallbackName = fallbackName[..User.MaxDisplayNameLength];
+
+            var creation = User.CreateFromGoogle(email, payload.Subject, payload.Name ?? fallbackName);
             if (creation.IsFailure) return Result<AuthResult>.Failure(creation.Error);
 
             user = creation.Value;
