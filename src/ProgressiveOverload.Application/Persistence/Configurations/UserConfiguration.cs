@@ -22,6 +22,10 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("users");
         builder.HasKey(u => u.Id);
 
+        // Ids are always client-assigned via Guid.CreateVersion7(), never database-generated;
+        // see BodyweightEntryConfiguration for why leaving EF's default matters.
+        builder.Property(u => u.Id).ValueGeneratedNever();
+
         builder.Property(u => u.Email).HasMaxLength(320).IsRequired();
         builder.HasIndex(u => u.Email).IsUnique().HasDatabaseName(EmailUniqueIndexName);
 
