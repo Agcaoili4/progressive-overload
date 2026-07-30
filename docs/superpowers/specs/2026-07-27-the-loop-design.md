@@ -286,6 +286,22 @@ Core aggregates: **User/Profile**, **Exercise**, **WorkoutSession → WorkoutSet
 preference lives on the profile and applies to display only. Mixed-unit storage produces
 bugs that surface months later in leaderboard disputes; float rounding makes PRs flicker.
 
+**The API speaks kilograms only; conversion happens at the display edge.** A number in a
+request is then never ambiguous, and comparisons, personal records, and the scoring engine
+all operate on one scale.
+
+"Display" is not purely a frontend concern, though — **the weekly recap email is
+server-generated**, so the server needs conversion too. `Domain/Common/WeightConversion.cs`
+provides it, deriving both directions from the exact definition (one pound = 0.45359237 kg)
+so they cannot drift apart.
+
+Display rounding is a product rule, not a formatting detail. Metric rounds to one decimal
+place. **Imperial snaps to the nearest 0.5 lb**, because a lifter who enters 225 lb has it
+stored as 102.06 kg and a naive conversion back reads 224.99 lb — which looks like a bug to
+someone who knows they lifted 225. Half-pound steps restore the entered number while still
+representing micro-plate loads like 227.5 lb. Both directions round away from zero; .NET's
+default banker's rounding would send a value sitting exactly on a boundary to the wrong one.
+
 **Bodyweight is a time series.** DOTS requires bodyweight *at the time of the lift*, and
 users want the trend. A `bodyweight_entries` table, plus a denormalized `bodyweight_kg`
 snapshot copied onto each session at creation so sessions stay explicable years later.
