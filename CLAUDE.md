@@ -69,6 +69,12 @@ Do not weaken these without saying so explicitly:
 - Use `/* ... */` blocks for explanatory comments on types and members. **Never `///` XML
   doc comments.** Use `//` for short one- or two-line notes inside a method.
 - Comment the **why**, not the what. Only where the logic is genuinely non-obvious.
+- **No first person.** Never "we", "us", "our", "I", or "let's". Write impersonally or in the
+  imperative: "Kept for its ordered validation", not "We keep it for its ordered validation".
+- **Lead with the point.** The first line must carry the reason. A reader skimming should
+  understand the block from that line alone; the rest is supporting detail.
+- Keep it short: one to three lines for an in-method note, five at most for a block on a type.
+  A comment longer than the code it explains is a sign the code needs changing instead.
 - Dense configuration code (EF mappings, DI wiring, test fixtures) reads as "obvious" to
   someone who knows the library and opaque to everyone else — comment it even though it has
   no branching logic.

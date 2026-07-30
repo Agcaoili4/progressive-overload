@@ -24,9 +24,11 @@ public sealed class RegisterTests(PostgresFixture fixture) : IDisposable
         displayName = "Jansen"
     };
 
-    // Pulls the raw refresh token out of a Set-Cookie header the way a real cookie jar
-    // would: take the name=value pair, then percent-decode it, since ASP.NET encodes the
-    // value on write (the raw token is standard Base64 and can contain '+', '/', '=').
+    /*
+        Pulls the raw refresh token out of a Set-Cookie header the way a real cookie jar
+        would: take the name=value pair, then percent-decode it, since ASP.NET encodes the
+        value on write (the raw token is standard Base64 and can contain '+', '/', '=').
+    */
     private static string ExtractRefreshCookieValue(HttpResponseMessage response)
     {
         var header = response.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("po_refresh="));

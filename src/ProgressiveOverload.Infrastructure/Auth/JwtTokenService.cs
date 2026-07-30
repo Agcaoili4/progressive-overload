@@ -45,10 +45,12 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options, IClock clock) 
         return (raw, HashRefreshToken(raw));
     }
 
+    /*
+        Stored SHA-256 hashed so a database leak yields no usable sessions. Plain SHA-256
+        (rather than a slow KDF like PBKDF2/bcrypt) is correct here because the token is
+        256 bits of CSPRNG output, not a human-chosen secret, so there is no dictionary to
+        attack and a slow hash would buy nothing but wasted CPU.
+    */
     public string HashRefreshToken(string raw) =>
-        // Stored SHA-256 hashed so a database leak yields no usable sessions. Plain SHA-256
-        // (rather than a slow KDF like PBKDF2/bcrypt) is correct here because the token is
-        // 256 bits of CSPRNG output, not a human-chosen secret, so there is no dictionary to
-        // attack and a slow hash would buy nothing but wasted CPU.
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
 }

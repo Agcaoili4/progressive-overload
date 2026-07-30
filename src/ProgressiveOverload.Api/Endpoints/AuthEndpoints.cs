@@ -42,11 +42,10 @@ public static class AuthEndpoints
             }
             catch (DbUpdateException ex) when (IsUniqueEmailViolation(ex))
             {
-                // Lost the race on the unique email index. The `when` filter means any
-                // other DbUpdateException (FK violation, check-constraint failure,
-                // transient connection fault) is NOT caught here and propagates instead -
-                // those must surface as a real 500, not get disguised as a 409 that tells
-                // the client the wrong thing happened.
+                // Lost the race on the unique email index. The `when` filter excludes
+                // other DbUpdateException causes (FK violation, check-constraint failure,
+                // transient connection fault), which propagate as a real 500 instead of
+                // getting disguised as this 409.
                 return UserErrors.EmailAlreadyRegistered.ToProblem();
             }
 
@@ -90,9 +89,9 @@ public static class AuthEndpoints
             var result = await handler.Handle(raw, ct);
             if (result.IsFailure)
             {
-                // A failed refresh (bad, expired, revoked, or reused token) leaves the
-                // client holding a cookie that can never work again, so clear it here
-                // rather than making the client hang onto a dead token.
+                // A failed refresh (bad, expired, revoked, or reused token) leaves a cookie
+                // that can never work again, so clear it here instead of leaving the
+                // client to hang onto a dead token.
                 http.ClearRefreshCookie();
                 return result.Error.ToProblem();
             }
@@ -111,10 +110,12 @@ public static class AuthEndpoints
         .AllowAnonymous();
     }
 
-    // Narrowly matches a unique-violation on the users-email index specifically, rather
-    // than trusting "it's a DbUpdateException" to mean "duplicate email". SqlState 23505
-    // is Postgres's unique-violation code; the constraint name check rules out the
-    // (also-unique) google_subject index or any future unique constraint on this table.
+    /*
+        Narrowly matches a unique violation on the users-email index, rather than trusting
+        "DbUpdateException" alone to mean "duplicate email". SqlState 23505 is Postgres's
+        unique-violation code; the constraint-name check rules out the also-unique
+        google_subject index or any future unique constraint on this table.
+    */
     private static bool IsUniqueEmailViolation(DbUpdateException ex) =>
         ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } pg
             && pg.ConstraintName == "ix_users_email";
@@ -133,13 +134,14 @@ public static class AuthEndpoints
             IsEssential = true
         });
 
-    // Deleting a cookie works by telling the browser to overwrite it with an
-    // already-expired one, which only happens if the browser recognizes it as the SAME
-    // cookie. The browser keys a cookie by name + Path (and Domain), and HttpOnly /
-    // Secure / SameSite must line up too - if any of these differ from the options used
-    // in SetRefreshCookie above, the browser treats this as a different cookie, leaves
-    // the original in place, and the user is stuck in a broken half-logged-out state
-    // where the client thinks it logged out but the browser keeps sending the old token.
+    /*
+        These options must exactly mirror SetRefreshCookie above or logout silently fails.
+        Deleting a cookie means telling the browser to overwrite it with an
+        already-expired one, which only works if the browser recognizes it as the SAME
+        cookie - keyed by name + Path (and Domain), plus matching HttpOnly / Secure /
+        SameSite. Any mismatch leaves the original cookie in place: the client believes
+        it logged out while the browser keeps sending the old token.
+    */
     public static void ClearRefreshCookie(this HttpContext http) =>
         http.Response.Cookies.Delete(RefreshCookieName, new CookieOptions
         {

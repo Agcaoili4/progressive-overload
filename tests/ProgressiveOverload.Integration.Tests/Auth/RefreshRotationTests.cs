@@ -18,11 +18,13 @@ public sealed class RefreshRotationTests(PostgresFixture fixture) : IDisposable
     private static string ExtractRefreshCookie(HttpResponseMessage response) =>
         RawRefreshCookieHeader(response).Split(';')[0]["po_refresh=".Length..];
 
-    // Every Set-Cookie attribute except the cookie value itself and `expires` (which
-    // legitimately differs: login sets a future expiry, logout sets an already-past one).
-    // A browser only treats logout's Set-Cookie as overwriting login's cookie if Path,
-    // Secure, SameSite, and HttpOnly all match exactly - so this is what actually needs
-    // to be equal between the two, not the header string as a whole.
+    /*
+        Every Set-Cookie attribute except the cookie value itself and `expires`, which
+        legitimately differs (login sets a future expiry, logout sets an already-past
+        one). A browser only treats logout's Set-Cookie as overwriting login's cookie if
+        Path, Secure, SameSite, and HttpOnly all match exactly, so those are what must be
+        equal between the two - not the header string as a whole.
+    */
     private static IEnumerable<string> CookieAttributes(HttpResponseMessage response) =>
         RawRefreshCookieHeader(response)
             .Split(';')
@@ -107,18 +109,18 @@ public sealed class RefreshRotationTests(PostgresFixture fixture) : IDisposable
     {
         var (client, original) = await ASignedInUser();
 
-        /* Fire both requests for the SAME token without awaiting in between - this is the
-           race a thief creates by replaying a stolen token at (roughly) the same moment
-           the legitimate client refreshes with it. Two interleavings are both legitimate
-           outcomes of RefreshHandler's conditional claim + post-insert re-check:
-             - one request wins the claim and returns 200, the other loses and returns 401
-             - the loser's RevokeFamily commits before the winner's insert lands, the
-               winner's post-insert re-check then finds the family already revoked and
-               also returns 401, so BOTH requests come back 401
-           The second case is not a bug - it is the more conservative resolution of a
-           detected race, since a race is by definition indistinguishable from a replay.
-           Do not tighten the assertions below to require exactly one 200; that assumption
-           does not hold under the second interleaving. */
+        // Fire both requests for the SAME token without awaiting in between - this is the
+        // race a thief creates by replaying a stolen token at (roughly) the same moment
+        // the legitimate client refreshes with it. Two interleavings are both legitimate
+        // outcomes of RefreshHandler's conditional claim + post-insert re-check:
+        //   - one request wins the claim and returns 200, the other loses and returns 401
+        //   - the loser's RevokeFamily commits before the winner's insert lands, the
+        //     winner's post-insert re-check then finds the family already revoked and
+        //     also returns 401, so BOTH requests come back 401
+        // The second case is not a bug - it is the more conservative resolution of a
+        // detected race, since a race is by definition indistinguishable from a replay.
+        // Do not tighten the assertions below to require exactly one 200; that assumption
+        // does not hold under the second interleaving.
         var firstCall = client.SendAsync(RefreshRequest(original));
         var secondCall = client.SendAsync(RefreshRequest(original));
         var responses = await Task.WhenAll(firstCall, secondCall);

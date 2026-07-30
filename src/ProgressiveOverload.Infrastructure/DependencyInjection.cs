@@ -18,14 +18,12 @@ public static class DependencyInjection
             options.UseNpgsql(configuration.GetConnectionString("Postgres"))
                    .UseSnakeCaseNamingConvention());
 
-        /*
-            A missing or too-short signing key must crash the process at startup rather than
-            surface as a 500 on the first login attempt. Without ValidateOnStart, a deployment
-            missing Jwt:SigningKey looks healthy — health checks pass, the process stays up —
-            right up until the first user tries to log in and JwtTokenService throws. Failing
-            loudly at boot turns a silent, hard-to-diagnose production incident into an
-            immediate, obvious deployment failure.
-        */
+        // A missing or too-short signing key must crash the process at startup rather than
+        // surface as a 500 on the first login attempt. Without ValidateOnStart, a deployment
+        // missing Jwt:SigningKey looks healthy — health checks pass, the process stays up —
+        // right up until the first user tries to log in and JwtTokenService throws. Failing
+        // loudly at boot turns a silent, hard-to-diagnose production incident into an
+        // immediate, obvious deployment failure.
         services.AddOptions<JwtOptions>()
             .Bind(configuration.GetSection(JwtOptions.SectionName))
             .Validate(o => !string.IsNullOrWhiteSpace(o.SigningKey), "Jwt:SigningKey is required.")
