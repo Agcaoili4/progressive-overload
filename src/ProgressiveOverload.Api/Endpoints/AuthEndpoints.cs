@@ -6,7 +6,10 @@ using ProgressiveOverload.Api.Extensions;
 using ProgressiveOverload.Application.Abstractions;
 using ProgressiveOverload.Application.Users;
 using ProgressiveOverload.Application.Users.Login;
+using ProgressiveOverload.Application.Users.Logout;
+using ProgressiveOverload.Application.Users.Refresh;
 using ProgressiveOverload.Application.Users.Register;
+using ProgressiveOverload.Domain.Auth;
 using ProgressiveOverload.Domain.Common;
 using ProgressiveOverload.Domain.Users;
 
@@ -73,6 +76,39 @@ public static class AuthEndpoints
             return Results.Ok(result.Value.Response);
         })
         .AllowAnonymous();
+
+        group.MapPost("/refresh", async (
+            RefreshHandler handler,
+            IOptions<JwtOptions> jwtOptions,
+            HttpContext http,
+            CancellationToken ct) =>
+        {
+            var raw = http.Request.Cookies[RefreshCookieName];
+            if (string.IsNullOrWhiteSpace(raw))
+                return AuthErrors.RefreshTokenInvalid.ToProblem();
+
+            var result = await handler.Handle(raw, ct);
+            if (result.IsFailure)
+            {
+                // A failed refresh (bad, expired, revoked, or reused token) leaves the
+                // client holding a cookie that can never work again, so clear it here
+                // rather than making the client hang onto a dead token.
+                http.ClearRefreshCookie();
+                return result.Error.ToProblem();
+            }
+
+            http.SetRefreshCookie(result.Value.RefreshTokenRaw, jwtOptions.Value.RefreshTokenDays);
+            return Results.Ok(result.Value.Response);
+        })
+        .AllowAnonymous();
+
+        group.MapPost("/logout", async (LogoutHandler handler, HttpContext http, CancellationToken ct) =>
+        {
+            await handler.Handle(http.Request.Cookies[RefreshCookieName], ct);
+            http.ClearRefreshCookie();
+            return Results.NoContent();
+        })
+        .AllowAnonymous();
     }
 
     // Narrowly matches a unique-violation on the users-email index specifically, rather
@@ -95,5 +131,21 @@ public static class AuthEndpoints
             Path = "/api/v1/auth",
             Expires = DateTimeOffset.UtcNow.AddDays(days),
             IsEssential = true
+        });
+
+    // Deleting a cookie works by telling the browser to overwrite it with an
+    // already-expired one, which only happens if the browser recognizes it as the SAME
+    // cookie. The browser keys a cookie by name + Path (and Domain), and HttpOnly /
+    // Secure / SameSite must line up too - if any of these differ from the options used
+    // in SetRefreshCookie above, the browser treats this as a different cookie, leaves
+    // the original in place, and the user is stuck in a broken half-logged-out state
+    // where the client thinks it logged out but the browser keeps sending the old token.
+    public static void ClearRefreshCookie(this HttpContext http) =>
+        http.Response.Cookies.Delete(RefreshCookieName, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Path = "/api/v1/auth"
         });
 }
