@@ -6,13 +6,19 @@ namespace ProgressiveOverload.Application.Persistence.Configurations;
 
 public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 {
+    /* AuthEndpoints.IsUniqueEmailViolation matches the Postgres constraint name against this
+       exact string to turn a duplicate-email race into a 409. Named explicitly, rather than
+       left to the snake_case convention, so a rename here is a compile-time change at both
+       sites instead of a silent divergence. */
+    public const string EmailUniqueIndexName = "ix_users_email";
+
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.ToTable("users");
         builder.HasKey(u => u.Id);
 
         builder.Property(u => u.Email).HasMaxLength(320).IsRequired();
-        builder.HasIndex(u => u.Email).IsUnique();
+        builder.HasIndex(u => u.Email).IsUnique().HasDatabaseName(EmailUniqueIndexName);
 
         builder.Property(u => u.PasswordHash).HasMaxLength(256);
 
