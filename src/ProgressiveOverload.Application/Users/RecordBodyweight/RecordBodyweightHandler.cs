@@ -15,19 +15,20 @@ public sealed class RecordBodyweightHandler(AppDbContext db, ICurrentUser curren
         var userId = currentUser.UserId;
         if (userId is null) return Result<BodyweightResponse>.Failure(UserErrors.NotFound);
 
-        var user = await db.Users
-            .Include(u => u.BodyweightEntries)
-            .SingleOrDefaultAsync(u => u.Id == userId.Value, ct);
+        var user = await db.Users.SingleOrDefaultAsync(u => u.Id == userId.Value, ct);
 
         if (user is null) return Result<BodyweightResponse>.Failure(UserErrors.NotFound);
 
         var recorded = user.RecordBodyweight(command.WeightKg, command.RecordedAt ?? clock.UtcNow);
         if (recorded.IsFailure) return Result<BodyweightResponse>.Failure(recorded.Error);
 
-        // The new entry carries a client-assigned GUID, so without an explicit Add, EF
-        // finds it only through the already-tracked User.BodyweightEntries navigation and
-        // treats it as an existing row to UPDATE rather than a new one to INSERT — that
-        // update matches zero rows and throws DbUpdateConcurrencyException.
+        /*
+            Stated explicitly because the entry carries a client-assigned key. While the Guid
+            keys still had EF's default ValueGeneratedOnAdd, reaching this row only through
+            the User.BodyweightEntries navigation made EF treat it as an existing row and
+            issue a zero-row UPDATE. ValueGeneratedNever fixed that; the Add keeps the insert
+            correct regardless of how key generation is configured later.
+        */
         db.BodyweightEntries.Add(recorded.Value);
         await db.SaveChangesAsync(ct);
 

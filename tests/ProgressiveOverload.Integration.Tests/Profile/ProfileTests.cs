@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using ProgressiveOverload.Application.Users;
 using ProgressiveOverload.Application.Users.GetProfile;
+using ProgressiveOverload.Domain.Users;
 using ProgressiveOverload.Integration.Tests.Infrastructure;
 using Shouldly;
 
@@ -79,7 +80,7 @@ public sealed class ProfileTests(PostgresFixture fixture) : IDisposable
 
         var response = await client.PatchAsJsonAsync("/api/v1/me", new
         {
-            displayName = new string('x', 31),
+            displayName = new string('x', User.MaxDisplayNameLength + 1),
             bio = (string?)null,
             sex = (int?)null,
             experienceLevel = (int?)null,
@@ -101,6 +102,30 @@ public sealed class ProfileTests(PostgresFixture fixture) : IDisposable
         profile!.CurrentBodyweightKg.ShouldBe(84.5m);
     }
 
+    /*
+        Two entries for one user, the second backdated. Covers the backfill rule end to end
+        and the second insert against a User whose entry collection was never loaded — the
+        handler reads only the scalar CurrentBodyweightAt, so it must not need the history.
+    */
+    [Fact]
+    public async Task PostBodyweight_BackdatedEntry_DoesNotOverwriteCurrentWeight()
+    {
+        var client = await AnAuthenticatedClient();
+
+        await client.PostAsJsonAsync("/api/v1/me/bodyweight", new { weightKg = 84.5m });
+
+        var backdated = await client.PostAsJsonAsync("/api/v1/me/bodyweight", new
+        {
+            weightKg = 91.0m,
+            recordedAt = DateTimeOffset.UtcNow.AddDays(-30)
+        });
+
+        backdated.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var profile = await client.GetFromJsonAsync<ProfileResponse>("/api/v1/me");
+        profile!.CurrentBodyweightKg.ShouldBe(84.5m);
+    }
+
     [Fact]
     public async Task PostBodyweight_RejectsImplausibleValue()
     {
@@ -110,15 +135,52 @@ public sealed class ProfileTests(PostgresFixture fixture) : IDisposable
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
+    /*
+        Adversarial by design: Alice puts Bob's id everywhere a handler might wrongly read it
+        — query string and request body, on the read and on both writes. Asserting only that
+        two ids differ would stay green even if every endpoint honoured the injected id.
+    */
     [Fact]
-    public async Task OneUsersTokenNeverReturnsAnotherUsersProfile()
+    public async Task OneUsersTokenNeverReachesAnotherUsersProfile()
     {
         var alice = await AnAuthenticatedClient();
         var bob = await AnAuthenticatedClient();
 
         var aliceProfile = await alice.GetFromJsonAsync<ProfileResponse>("/api/v1/me");
         var bobProfile = await bob.GetFromJsonAsync<ProfileResponse>("/api/v1/me");
-
         aliceProfile!.Id.ShouldNotBe(bobProfile!.Id);
+
+        var read = await alice.GetFromJsonAsync<ProfileResponse>(
+            $"/api/v1/me?userId={bobProfile.Id}&id={bobProfile.Id}");
+        read!.Id.ShouldBe(aliceProfile.Id);
+        read.Email.ShouldBe(aliceProfile.Email);
+
+        var patch = await alice.PatchAsJsonAsync($"/api/v1/me?userId={bobProfile.Id}", new
+        {
+            id = bobProfile.Id,
+            userId = bobProfile.Id,
+            displayName = "Alice Was Here",
+            bio = (string?)null,
+            sex = (int?)null,
+            experienceLevel = (int?)null,
+            units = 1
+        });
+        patch.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var bodyweight = await alice.PostAsJsonAsync($"/api/v1/me/bodyweight?userId={bobProfile.Id}", new
+        {
+            userId = bobProfile.Id,
+            weightKg = 70.0m
+        });
+        bodyweight.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        // Bob's row must be untouched by either write, and Alice's must carry both.
+        var bobAfter = await bob.GetFromJsonAsync<ProfileResponse>("/api/v1/me");
+        bobAfter!.DisplayName.ShouldBe(bobProfile.DisplayName);
+        bobAfter.CurrentBodyweightKg.ShouldBeNull();
+
+        var aliceAfter = await alice.GetFromJsonAsync<ProfileResponse>("/api/v1/me");
+        aliceAfter!.DisplayName.ShouldBe("Alice Was Here");
+        aliceAfter.CurrentBodyweightKg.ShouldBe(70.0m);
     }
 }
