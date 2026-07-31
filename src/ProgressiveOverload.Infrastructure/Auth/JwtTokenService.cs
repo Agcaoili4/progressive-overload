@@ -27,9 +27,13 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options, IClock clock) 
             {
                 [JwtRegisteredClaimNames.Sub] = user.Id.ToString(),
                 [JwtRegisteredClaimNames.Jti] = Guid.CreateVersion7().ToString(),
-                // Carries the user's SecurityStamp so a password change (or global sign-out)
-                // can invalidate outstanding access tokens without maintaining a blacklist:
-                // the handler compares this claim against the current stamp on each request.
+                /*
+                    Carried for a future password-change or global sign-out; nothing compares
+                    it today, so SetPasswordHash rotating SecurityStamp invalidates nothing.
+                    An access token stays valid for its full lifetime, which means revoking a
+                    session is a matter of revoking the refresh-token family — this token
+                    cannot be recalled before it expires.
+                */
                 ["stamp"] = user.SecurityStamp.ToString()
             }
         };
