@@ -10,10 +10,12 @@ public static class ProfileEndpoints
 {
     public static void MapProfileEndpoints(this IEndpointRouteBuilder app)
     {
-        // RequireAuthorization on the group is the boundary that makes this the first
-        // protected surface in the product: every handler behind it still reads the user
-        // id from ICurrentUser rather than the request, but none of them work at all
-        // without a validated token to begin with.
+        /*
+            RequireAuthorization on the group is the boundary that makes this the first
+            protected surface in the product: every handler behind it still reads the user
+            id from ICurrentUser rather than the request, but none of them work at all
+            without a validated token to begin with.
+        */
         var group = app.MapGroup("/api/v1/me").WithTags("Profile").RequireAuthorization();
 
         group.MapGet("/", async (GetProfileHandler handler, CancellationToken ct) =>
