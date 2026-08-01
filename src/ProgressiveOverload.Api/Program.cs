@@ -40,10 +40,43 @@ builder.WebHost.UseSentry(options =>
     */
     options.SendDefaultPii = false;
     options.MaxRequestBodySize = Sentry.Extensibility.RequestSize.None;
+
+    // Fixed rather than the default machine name, which SendDefaultPii does not suppress and
+    // which on a developer machine carries a person's name into every event.
+    options.ServerName = "progressive-overload-api";
+
+    /*
+        Development and Testing drop every event, so local noise and test runs never reach
+        the project. Sentry:SendInDevelopment opts one local run back in, which is the only
+        way to confirm the two scrubbing rules above actually hold — an unverified claim
+        about what reaches a third party is worth little. Defaults to false; never set it
+        in a deployed environment.
+    */
+    var sendFromLocal = builder.Configuration.GetValue<bool>("Sentry:SendInDevelopment");
+    var suppressLocally = !sendFromLocal
+        && (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing"));
+
+    options.Debug = sendFromLocal;
+
+    /*
+        Both hooks, not just the first: transactions carry the same request context as events
+        and are not passed through SetBeforeSend, so suppressing only events would still ship
+        local traces to the project. ASP.NET also fills request.env.SERVER_NAME with the
+        machine name, which options.ServerName above does not govern.
+    */
     options.SetBeforeSend((@event, _) =>
-        builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")
-            ? null
-            : @event);
+    {
+        if (suppressLocally) return null;
+        @event.Request.Env.Remove("SERVER_NAME");
+        return @event;
+    });
+
+    options.SetBeforeSendTransaction((transaction, _) =>
+    {
+        if (suppressLocally) return null;
+        transaction.Request.Env.Remove("SERVER_NAME");
+        return transaction;
+    });
 });
 
 builder.Services.AddInfrastructure(builder.Configuration);
