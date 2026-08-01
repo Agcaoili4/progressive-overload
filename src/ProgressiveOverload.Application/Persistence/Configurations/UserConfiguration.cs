@@ -12,10 +12,19 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
        sites instead of a silent divergence. */
     public const string EmailUniqueIndexName = "ix_users_email";
 
+    /* Same reasoning as EmailUniqueIndexName above: AuthEndpoints matches this exact string
+       against the Postgres constraint name to detect a concurrent-Google-sign-in race on the
+       filtered google_subject index. */
+    public const string GoogleSubjectUniqueIndexName = "ix_users_google_subject";
+
     public void Configure(EntityTypeBuilder<User> builder)
     {
         builder.ToTable("users");
         builder.HasKey(u => u.Id);
+
+        // Ids are always client-assigned via Guid.CreateVersion7(), never database-generated;
+        // see BodyweightEntryConfiguration for why leaving EF's default matters.
+        builder.Property(u => u.Id).ValueGeneratedNever();
 
         builder.Property(u => u.Email).HasMaxLength(320).IsRequired();
         builder.HasIndex(u => u.Email).IsUnique().HasDatabaseName(EmailUniqueIndexName);
@@ -27,6 +36,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.GoogleSubject).HasMaxLength(255);
         builder.HasIndex(u => u.GoogleSubject)
             .IsUnique()
+            .HasDatabaseName(GoogleSubjectUniqueIndexName)
             .HasFilter("google_subject IS NOT NULL");
 
         builder.Property(u => u.DisplayName).HasMaxLength(User.MaxDisplayNameLength).IsRequired();

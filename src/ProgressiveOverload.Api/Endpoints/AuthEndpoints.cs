@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using ProgressiveOverload.Api.Extensions;
 using ProgressiveOverload.Application.Abstractions;
+using ProgressiveOverload.Application.Persistence;
 using ProgressiveOverload.Application.Persistence.Configurations;
 using ProgressiveOverload.Application.Users;
 using ProgressiveOverload.Application.Users.GoogleSignIn;
@@ -114,6 +115,7 @@ public static class AuthEndpoints
         group.MapPost("/google", async (
             GoogleSignInCommand command,
             GoogleSignInHandler handler,
+            AppDbContext db,
             IOptions<JwtOptions> jwtOptions,
             HttpContext http,
             CancellationToken ct) =>
@@ -121,7 +123,29 @@ public static class AuthEndpoints
             if (string.IsNullOrWhiteSpace(command.IdToken))
                 return AuthErrors.GoogleTokenInvalid.ToProblem();
 
-            var result = await handler.Handle(command, ct);
+            Result<AuthResult> result;
+            try
+            {
+                result = await handler.Handle(command, ct);
+            }
+            catch (DbUpdateException ex) when (IsUniqueGoogleSignInViolation(ex))
+            {
+                /*
+                    Two concurrent FIRST-TIME Google sign-ins for the same new account both
+                    pass the lookup and both attempt an insert; the loser hits a unique
+                    index (email or the filtered google_subject index - which one depends
+                    on Postgres's check order) instead of doing anything wrong. Unlike
+                    /register, a 409 here would be a bug from the loser's point of view -
+                    nothing about their request conflicted with anything they did. Clearing
+                    the tracker drops the entity this attempt failed to insert, so the
+                    retry's lookup can find the row the winner already committed and finish
+                    normally; both callers end up signed in. If the retry also fails, let
+                    it surface rather than looping.
+                */
+                db.ChangeTracker.Clear();
+                result = await handler.Handle(command, ct);
+            }
+
             if (result.IsFailure) return result.Error.ToProblem();
 
             http.SetRefreshCookie(result.Value.RefreshTokenRaw, jwtOptions.Value.RefreshTokenDays);
@@ -137,8 +161,20 @@ public static class AuthEndpoints
         google_subject index or any future unique constraint on this table.
     */
     private static bool IsUniqueEmailViolation(DbUpdateException ex) =>
+        IsUniqueIndexViolation(ex, UserConfiguration.EmailUniqueIndexName);
+
+    /*
+        Google sign-in can race on either unique index: the email index (two sign-ins for
+        the same new address) or the filtered google_subject index (two sign-ins with the
+        same Google identity). Both must retry, so both are recognised here.
+    */
+    private static bool IsUniqueGoogleSignInViolation(DbUpdateException ex) =>
+        IsUniqueIndexViolation(ex, UserConfiguration.EmailUniqueIndexName)
+            || IsUniqueIndexViolation(ex, UserConfiguration.GoogleSubjectUniqueIndexName);
+
+    private static bool IsUniqueIndexViolation(DbUpdateException ex, string indexName) =>
         ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } pg
-            && pg.ConstraintName == UserConfiguration.EmailUniqueIndexName;
+            && pg.ConstraintName == indexName;
 
     public static void SetRefreshCookie(this HttpContext http, string raw, int days) =>
         http.Response.Cookies.Append(RefreshCookieName, raw, new CookieOptions

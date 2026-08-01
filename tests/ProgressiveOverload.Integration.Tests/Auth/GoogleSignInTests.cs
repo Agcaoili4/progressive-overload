@@ -83,4 +83,30 @@ public sealed class GoogleSignInTests(PostgresFixture fixture) : IDisposable
         var response = await client.PostAsJsonAsync("/api/v1/auth/google", new { idToken = "garbage" });
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task GoogleSignIn_ConcurrentFirstTimeSignIns_BothSucceedWithTheSameUser()
+    {
+        var email = $"{Guid.NewGuid():N}@example.com";
+        var client = ClientWith(new GooglePayload("sub-concurrent", email, EmailVerified: true, "Jansen"));
+
+        // Fire both requests for the same brand-new identity without awaiting in between -
+        // this is the race two concurrent first-time Google sign-ins create: both pass the
+        // lookup before either has inserted, so one of them hits a unique-index violation
+        // that is nobody's mistake. The endpoint's retry-once must resolve this so both
+        // callers end up signed in as the same user, not one of them seeing a bogus 409
+        // or 500 for a sign-up that actually succeeded.
+        var firstCall = client.PostAsJsonAsync("/api/v1/auth/google", new { idToken = "anything" });
+        var secondCall = client.PostAsJsonAsync("/api/v1/auth/google", new { idToken = "anything" });
+        var responses = await Task.WhenAll(firstCall, secondCall);
+
+        responses[0].StatusCode.ShouldBe(HttpStatusCode.OK);
+        responses[1].StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var bodies = await Task.WhenAll(
+            responses[0].Content.ReadFromJsonAsync<ProgressiveOverload.Application.Users.AuthResponse>(),
+            responses[1].Content.ReadFromJsonAsync<ProgressiveOverload.Application.Users.AuthResponse>());
+
+        bodies[0]!.UserId.ShouldBe(bodies[1]!.UserId);
+    }
 }
