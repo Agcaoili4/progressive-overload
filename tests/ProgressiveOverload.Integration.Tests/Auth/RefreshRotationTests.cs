@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using ProgressiveOverload.Integration.Tests.Infrastructure;
 using Shouldly;
 
@@ -102,6 +103,31 @@ public sealed class RefreshRotationTests(PostgresFixture fixture) : IDisposable
 
         var afterLogout = await client.SendAsync(RefreshRequest(refresh));
         afterLogout.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    /*
+        A revoked-but-never-redeemed token is rejected by Redeem's revoked check, which is
+        the only thing standing between it and a successful rotation — the atomic claim
+        filters on RedeemedAt alone. Remove that check and the request still ends in 401,
+        but only after pointlessly issuing and re-revoking a token, and it reports reuse
+        rather than an invalid token. The status alone cannot tell those apart, so this
+        asserts the code: the three refresh failures deliberately share one message and
+        differ only here.
+    */
+    [Fact]
+    public async Task RefreshingARevokedToken_ReportsInvalidRatherThanReuse()
+    {
+        var (client, refresh) = await ASignedInUser();
+
+        var logout = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/logout");
+        logout.Headers.Add("Cookie", $"po_refresh={refresh}");
+        await client.SendAsync(logout);
+
+        var response = await client.SendAsync(RefreshRequest(refresh));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        var problem = await response.Content.ReadFromJsonAsync<JsonElement>();
+        problem.GetProperty("code").GetString().ShouldBe("auth.refresh_token_invalid");
     }
 
     [Fact]
