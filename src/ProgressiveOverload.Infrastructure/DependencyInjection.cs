@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ProgressiveOverload.Application.Abstractions;
-using ProgressiveOverload.Infrastructure.Auth;
 using ProgressiveOverload.Application.Persistence;
+using ProgressiveOverload.Infrastructure.Auth;
 using ProgressiveOverload.Infrastructure.Time;
 
 namespace ProgressiveOverload.Infrastructure;

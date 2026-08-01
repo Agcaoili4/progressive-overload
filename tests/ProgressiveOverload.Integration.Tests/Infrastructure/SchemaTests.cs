@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using ProgressiveOverload.Domain.Users;
 using ProgressiveOverload.Application.Persistence;
 using ProgressiveOverload.Application.Persistence.Configurations;
+using ProgressiveOverload.Domain.Users;
 using Shouldly;
 
 namespace ProgressiveOverload.Integration.Tests.Infrastructure;
