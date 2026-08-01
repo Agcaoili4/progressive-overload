@@ -30,11 +30,13 @@ public sealed class GoogleTokenValidator(IOptions<GoogleAuthOptions> options) : 
 
         try
         {
+            // GoogleJsonWebSignature.ValidateAsync has no overload accepting a
+            // CancellationToken, so the certificate fetch it performs cannot be cancelled.
             var payload = await GoogleJsonWebSignature.ValidateAsync(idToken,
                 new GoogleJsonWebSignature.ValidationSettings
                 {
                     // Pinning the audience is what stops a token minted for a different
-                    // application from being replayed against ours.
+                    // application from being replayed against this application.
                     Audience = [options.Value.ClientId]
                 });
 

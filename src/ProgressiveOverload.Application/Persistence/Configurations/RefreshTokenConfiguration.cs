@@ -11,6 +11,10 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
         builder.ToTable("refresh_tokens");
         builder.HasKey(t => t.Id);
 
+        // Ids are always client-assigned via Guid.CreateVersion7(), never database-generated;
+        // see BodyweightEntryConfiguration for why leaving EF's default matters.
+        builder.Property(t => t.Id).ValueGeneratedNever();
+
         // 64 chars: a SHA-256 hash in hex. The token itself is never stored.
         // Every refresh request looks the token up by this hash, hence the unique index.
         builder.Property(t => t.TokenHash).HasMaxLength(64).IsRequired();
