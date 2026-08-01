@@ -2,6 +2,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ProgressiveOverload.Api.Endpoints;
@@ -132,6 +133,31 @@ builder.Services.AddRateLimiter(options =>
 });
 
 var app = builder.Build();
+
+/*
+    Must run before the rate limiter, which partitions on RemoteIpAddress. Behind Render's
+    proxy that is the proxy's own address, so without this every caller shares one partition
+    and the strict-auth limit becomes a global cap rather than a per-client one.
+
+    ForwardLimit = 1 is the security control, not a tuning knob. The middleware reads
+    X-Forwarded-For right to left, and the proxy appends the true client address as the last
+    entry, so the rightmost entry is the only one a client cannot forge. Raising this limit
+    walks left into values the caller supplied and hands them the ability to evade the
+    limiter by rotating a header. The known-proxy lists are cleared because Render's egress
+    addresses are not fixed; that is safe only in combination with the limit of one.
+*/
+var forwardedHeaders = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor,
+    ForwardLimit = 1
+};
+
+// Cleared, not initialised empty: these default to loopback only, and a collection
+// initializer would add nothing and silently leave that default in place.
+forwardedHeaders.KnownIPNetworks.Clear();
+forwardedHeaders.KnownProxies.Clear();
+
+app.UseForwardedHeaders(forwardedHeaders);
 
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
