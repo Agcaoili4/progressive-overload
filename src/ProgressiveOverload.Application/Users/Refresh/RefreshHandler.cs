@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ProgressiveOverload.Application.Abstractions;
+using ProgressiveOverload.Application.Persistence;
 using ProgressiveOverload.Domain.Auth;
 using ProgressiveOverload.Domain.Common;
-using ProgressiveOverload.Application.Persistence;
 
 namespace ProgressiveOverload.Application.Users.Refresh;
 

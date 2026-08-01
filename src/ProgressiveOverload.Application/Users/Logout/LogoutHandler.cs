@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ProgressiveOverload.Application.Abstractions;
-using ProgressiveOverload.Domain.Common;
 using ProgressiveOverload.Application.Persistence;
+using ProgressiveOverload.Domain.Common;
 
 namespace ProgressiveOverload.Application.Users.Logout;
 

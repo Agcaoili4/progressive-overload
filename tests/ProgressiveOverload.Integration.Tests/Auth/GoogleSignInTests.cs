@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 using ProgressiveOverload.Application.Abstractions;
 using ProgressiveOverload.Domain.Auth;
 using ProgressiveOverload.Domain.Common;

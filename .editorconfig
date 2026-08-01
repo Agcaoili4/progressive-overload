@@ -29,13 +29,17 @@ indent_size = 4
 tab_width = 4
 
 # New line preferences
-insert_final_newline = false
+# True, not the `dotnet new` default of false: every file in the repo already ends with a
+# newline, so the scaffolded value would have had `dotnet format` strip it from all of them.
+insert_final_newline = true
 
 #### .NET Coding Conventions ####
 [*.{cs,vb}]
 
 # Organize usings
-dotnet_separate_import_directive_groups = true
+# False, not the `dotnet new` default of true: no file in this repo separates its using
+# groups with blank lines. The config describes the code rather than churning 38 files.
+dotnet_separate_import_directive_groups = false
 dotnet_sort_system_directives_first = true
 file_header_template = unset
 
