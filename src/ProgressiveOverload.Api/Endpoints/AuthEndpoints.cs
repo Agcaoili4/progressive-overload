@@ -22,6 +22,13 @@ public static class AuthEndpoints
 {
     public const string RefreshCookieName = "po_refresh";
 
+    /*
+        Named once here and referenced by both the policy registration and the endpoints it
+        protects. A typo in either half of a string literal pair fails silently: the policy
+        simply never applies, and the endpoint is unthrottled with nothing to notice it.
+    */
+    public const string StrictAuthPolicy = "strict-auth";
+
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/v1/auth").WithTags("Auth");
@@ -57,7 +64,8 @@ public static class AuthEndpoints
             http.SetRefreshCookie(result.Value.RefreshTokenRaw, jwtOptions.Value.RefreshTokenDays);
             return Results.Created($"/api/v1/users/{result.Value.Response.UserId}", result.Value.Response);
         })
-        .AllowAnonymous();
+        .AllowAnonymous()
+        .RequireRateLimiting(StrictAuthPolicy);
 
         group.MapPost("/login", async (
             LoginCommand command,
@@ -77,7 +85,8 @@ public static class AuthEndpoints
             http.SetRefreshCookie(result.Value.RefreshTokenRaw, jwtOptions.Value.RefreshTokenDays);
             return Results.Ok(result.Value.Response);
         })
-        .AllowAnonymous();
+        .AllowAnonymous()
+        .RequireRateLimiting(StrictAuthPolicy);
 
         group.MapPost("/refresh", async (
             RefreshHandler handler,
@@ -151,7 +160,8 @@ public static class AuthEndpoints
             http.SetRefreshCookie(result.Value.RefreshTokenRaw, jwtOptions.Value.RefreshTokenDays);
             return Results.Ok(result.Value.Response);
         })
-        .AllowAnonymous();
+        .AllowAnonymous()
+        .RequireRateLimiting(StrictAuthPolicy);
     }
 
     /*

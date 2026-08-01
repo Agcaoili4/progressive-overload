@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
@@ -14,8 +15,35 @@ using ProgressiveOverload.Application.Users.Refresh;
 using ProgressiveOverload.Application.Users.Register;
 using ProgressiveOverload.Application.Users.UpdateProfile;
 using ProgressiveOverload.Infrastructure;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, config) => config
+    .ReadFrom.Configuration(context.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console());
+
+builder.WebHost.UseSentry(options =>
+{
+    options.Dsn = builder.Configuration["Sentry:Dsn"] ?? string.Empty;
+    options.Environment = builder.Environment.EnvironmentName;
+    options.Release = builder.Configuration["Sentry:Release"];
+    options.TracesSampleRate = 0.1;
+
+    /*
+        The app handles email addresses and bodyweight — health-adjacent personal data that
+        must never reach a third-party error tracker (spec §11). Request bodies are dropped
+        wholesale rather than filtered, because /auth/login and /auth/register carry
+        plaintext passwords.
+    */
+    options.SendDefaultPii = false;
+    options.MaxRequestBodySize = Sentry.Extensibility.RequestSize.None;
+    options.SetBeforeSend((@event, _) =>
+        builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")
+            ? null
+            : @event);
+});
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterValidator>();
@@ -72,10 +100,43 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    /*
+        Partitioned per IP. Correct for a single Render instance (spec §10); revisit if the
+        API is ever scaled out, since in-memory partitions are per-process. Behind a proxy
+        RemoteIpAddress is the proxy unless forwarded headers are configured, which would
+        collapse every caller into one partition — see the note on UseForwardedHeaders.
+    */
+    options.AddPolicy(AuthEndpoints.StrictAuthPolicy, http =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(http =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 300,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
+
 var app = builder.Build();
 
+app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapAuthEndpoints();
