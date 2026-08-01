@@ -28,12 +28,18 @@ public sealed class LoginHandler(
         // accounts (no PasswordHash, so `hash` is null): they fall to the VerifyDummy
         // branch and are rejected, since signing up with Google must not allow
         // authenticating with a password.
-        var passwordValid = user?.PasswordHash is { } hash
-            ? passwordHasher.Verify(hash: hash, password: command.Password)
+        var verification = user?.PasswordHash is { } hash
+            ? passwordHasher.Verify(new PasswordHash(hash), command.Password)
             : passwordHasher.VerifyDummy(command.Password);
 
-        if (!passwordValid)
+        if (verification == PasswordVerification.Failed)
             return Result<AuthResult>.Failure(AuthErrors.InvalidCredentials);
+
+        // Login is the only moment the plaintext exists, so it is the only chance to
+        // re-store an old hash under the hasher's current parameters. Saved below with the
+        // refresh token, in the same transaction.
+        if (verification == PasswordVerification.ValidButNeedsRehash)
+            user!.UpgradePasswordHash(passwordHasher.Hash(command.Password));
 
         var (raw, tokenHash) = tokens.CreateRefreshToken();
 

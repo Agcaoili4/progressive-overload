@@ -80,6 +80,14 @@ public sealed class User
         return Result.Success();
     }
 
+    /*
+        Re-stores the same credential under stronger hashing parameters. Deliberately does
+        not rotate SecurityStamp, unlike SetPasswordHash above: the password itself did not
+        change, so once a stamp check exists this must not sign the user out everywhere
+        merely because their hash was upgraded in the background.
+    */
+    public void UpgradePasswordHash(string passwordHash) => PasswordHash = passwordHash;
+
     public Result UpdateProfile(
         string displayName,
         string? bio,

@@ -17,14 +17,23 @@ public sealed class PasswordHasherAdapter : IPasswordHasher
 
     public string Hash(string password) => _inner.HashPassword(null!, password);
 
-    public bool Verify(string hash, string password) =>
-        _inner.VerifyHashedPassword(null!, hash, password) is
-            PasswordVerificationResult.Success or
-            PasswordVerificationResult.SuccessRehashNeeded;
+    /*
+        SuccessRehashNeeded is surfaced rather than folded into Valid. Identity returns it
+        when the stored hash used weaker parameters than the current hasher, and login is
+        the only moment the plaintext exists to re-hash with — discarding the distinction
+        means PBKDF2 parameters can never be raised for an account that already exists.
+    */
+    public PasswordVerification Verify(PasswordHash hash, string password) =>
+        _inner.VerifyHashedPassword(null!, hash.Value, password) switch
+        {
+            PasswordVerificationResult.Success => PasswordVerification.Valid,
+            PasswordVerificationResult.SuccessRehashNeeded => PasswordVerification.ValidButNeedsRehash,
+            _ => PasswordVerification.Failed
+        };
 
-    public bool VerifyDummy(string password)
+    public PasswordVerification VerifyDummy(string password)
     {
         _inner.VerifyHashedPassword(null!, DummyHash, password);
-        return false;
+        return PasswordVerification.Failed;
     }
 }

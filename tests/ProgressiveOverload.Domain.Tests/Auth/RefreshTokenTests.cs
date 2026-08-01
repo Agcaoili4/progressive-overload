@@ -58,12 +58,10 @@ public class RefreshTokenTests
         result.Error.ShouldBe(AuthErrors.RefreshTokenExpired);
     }
 
-    [Fact]
-    public void Redeem_AfterRevocationFails()
-    {
-        var token = AToken();
-        token.Revoke();
-
-        token.Redeem(Now).IsFailure.ShouldBeTrue();
-    }
+    /*
+        Redeem's revoked branch is covered by RefreshRotationTests instead. Revocation only
+        ever happens as SQL (ExecuteUpdateAsync), so there is no domain-level way to reach
+        that state, and the discarded unit test could only reach it through a domain method
+        production never called.
+    */
 }

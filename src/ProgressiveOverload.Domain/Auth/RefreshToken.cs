@@ -55,11 +55,4 @@ public sealed class RefreshToken
         RedeemedAt = now;
         return Result.Success();
     }
-
-    public void Revoke()
-    {
-        // ??= preserves the first revocation time. Re-revoking an already-dead token
-        // must not overwrite when it actually happened.
-        RevokedAt ??= DateTimeOffset.UtcNow;
-    }
 }

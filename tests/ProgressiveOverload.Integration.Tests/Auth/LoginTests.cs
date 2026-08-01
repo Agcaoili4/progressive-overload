@@ -1,11 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using ProgressiveOverload.Application.Abstractions;
+using ProgressiveOverload.Application.Persistence;
 using ProgressiveOverload.Application.Users;
+using ProgressiveOverload.Domain.Users;
 using ProgressiveOverload.Infrastructure.Auth;
 using ProgressiveOverload.Integration.Tests.Infrastructure;
 using Shouldly;
@@ -33,13 +38,13 @@ public sealed class LoginTests(PostgresFixture fixture) : IDisposable
 
         public string Hash(string password) => inner.Hash(password);
 
-        public bool Verify(string hash, string password)
+        public PasswordVerification Verify(PasswordHash hash, string password)
         {
             Interlocked.Increment(ref VerifyCalls);
-            return inner.Verify(hash: hash, password: password);
+            return inner.Verify(hash, password);
         }
 
-        public bool VerifyDummy(string password)
+        public PasswordVerification VerifyDummy(string password)
         {
             Interlocked.Increment(ref VerifyDummyCalls);
             return inner.VerifyDummy(password);
@@ -56,6 +61,49 @@ public sealed class LoginTests(PostgresFixture fixture) : IDisposable
 
         return (client, email);
     }
+
+    /*
+        Downgrades a stored hash to Identity's V2 format, which the V3 hasher accepts while
+        reporting SuccessRehashNeeded. Logging in must transparently re-store it under
+        current parameters — otherwise PBKDF2 can never be strengthened for accounts that
+        already exist, and the weakest hash in the table is the one that matters.
+    */
+    [Fact]
+    public async Task Login_WithAnOutdatedHash_UpgradesItInPlace()
+    {
+        var (client, email) = await ARegisteredUser();
+
+        var legacyHash = new PasswordHasher<User>(Options.Create(new PasswordHasherOptions
+        {
+            CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV2
+        })).HashPassword(null!, Password);
+
+        await using (var seed = NewDbContext())
+        {
+            var user = await seed.Users.SingleAsync(u => u.Email == email);
+            user.UpgradePasswordHash(legacyHash);
+            await seed.SaveChangesAsync();
+        }
+
+        var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = Password });
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        await using var verify = NewDbContext();
+        var stored = await verify.Users.SingleAsync(u => u.Email == email);
+
+        stored.PasswordHash.ShouldNotBe(legacyHash);
+
+        // Still the same credential, now under current parameters.
+        var hasher = new PasswordHasherAdapter();
+        hasher.Verify(new PasswordHash(stored.PasswordHash!), Password)
+            .ShouldBe(PasswordVerification.Valid);
+    }
+
+    private AppDbContext NewDbContext() =>
+        new(new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(fixture.ConnectionString)
+            .UseSnakeCaseNamingConvention()
+            .Options);
 
     [Fact]
     public async Task Login_WithCorrectPassword_ReturnsToken()
