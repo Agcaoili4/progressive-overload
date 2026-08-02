@@ -91,6 +91,25 @@ builder.Services.AddScoped<UpdateProfileHandler>();
 builder.Services.AddScoped<RecordBodyweightHandler>();
 builder.Services.AddProblemDetails();
 
+/*
+    Origins come from configuration and are always explicit — never AllowAnyOrigin. The web
+    client sends the refresh cookie, which requires AllowCredentials, and a browser rejects
+    a wildcard origin on a credentialed request outright. Configuring both also throws at
+    startup, so the two can never be combined by accident.
+
+    An empty list is the correct default rather than a permissive one: with no origins the
+    policy matches nothing, browsers are refused, and non-browser callers are unaffected.
+    Production supplies its origin by environment variable, so no deployed host is baked in.
+*/
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+
+builder.Services.AddCors(options =>
+    options.AddDefaultPolicy(policy => policy
+        .WithOrigins(corsOrigins)
+        .AllowCredentials()
+        .AllowAnyHeader()
+        .AllowAnyMethod()));
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer();
@@ -195,6 +214,20 @@ app.UseForwardedHeaders(forwardedHeaders);
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+/*
+    Ahead of UseAuthorization specifically. The 401 challenge for a protected endpoint is
+    raised there, and anything emitted upstream of UseCors reaches the browser without the
+    CORS header — which the browser reports as an opaque CORS failure rather than a status,
+    so an expired session would surface to the user as "network error" instead of "signed
+    out". Placing it merely before UseAuthentication is not enough, and endpoint responses
+    are unaffected wherever it sits, so the ordering looks harmless until it is measured.
+
+    Preflights consume no strict-auth permit at any position: OPTIONS never matches the
+    MapPost endpoint, so RequireRateLimiting metadata does not apply to them.
+*/
+app.UseCors();
+
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
