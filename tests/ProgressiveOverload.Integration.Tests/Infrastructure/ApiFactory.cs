@@ -17,6 +17,9 @@ public sealed class ApiFactory(PostgresFixture fixture) : WebApplicationFactory<
     public const string Issuer = "progressiveoverload";
     public const string Audience = "progressiveoverload";
 
+    /* The single origin the test host treats as the web client. */
+    public const string AllowedOrigin = "https://app.progressiveoverload.test";
+
     protected override IHost CreateHost(IHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
@@ -26,7 +29,8 @@ public sealed class ApiFactory(PostgresFixture fixture) : WebApplicationFactory<
                 ["ConnectionStrings:Postgres"] = fixture.ConnectionString,
                 ["Jwt:SigningKey"] = SigningKey,
                 ["Jwt:Issuer"] = Issuer,
-                ["Jwt:Audience"] = Audience
+                ["Jwt:Audience"] = Audience,
+                ["Cors:AllowedOrigins:0"] = AllowedOrigin
             }));
 
         return base.CreateHost(builder);
