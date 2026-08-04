@@ -12,6 +12,7 @@ export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -21,6 +22,7 @@ export default function SignIn() {
     setMode(mode === 'in' ? 'up' : 'in');
     setEmail('');
     setPassword('');
+    setConfirmPassword('');
     setDisplayName('');
     setShowPassword(false);
     setError(null);
@@ -30,11 +32,15 @@ export default function SignIn() {
   const { score, label, suggestions } = strength(password);
   const signingUp = mode === 'up';
 
+  const passwordsMatch = password !== '' && confirmPassword === password;
+  /* Only complain once they have actually typed something to compare. */
+  const showMismatch = signingUp && confirmPassword !== '' && !passwordsMatch;
+
   const canSubmit =
     !busy &&
     email.trim() !== '' &&
     password !== '' &&
-    (!signingUp || (displayName.trim() !== '' && meetsRequirements(password)));
+    (!signingUp || (displayName.trim() !== '' && meetsRequirements(password) && passwordsMatch));
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -173,6 +179,40 @@ export default function SignIn() {
                 </ul>
               </div>
             )}
+          </div>
+        )}
+
+        {/*
+            A typo in a password nobody can read costs an account recovery, so it is confirmed
+            before the account exists. Sign-in has nothing to confirm against.
+        */}
+        {signingUp && (
+          <div>
+            <div className="relative">
+              <input
+                className={`${field} pr-10 ${showMismatch ? 'border-red-500/50' : ''}`}
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
+                placeholder="Re-type password"
+                aria-invalid={showMismatch}
+                aria-describedby="confirm-state"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              {passwordsMatch && (
+                <span
+                  aria-hidden
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-lime-400"
+                >
+                  ✓
+                </span>
+              )}
+            </div>
+
+            <p id="confirm-state" role={showMismatch ? 'alert' : undefined} className="mt-1.5 px-1 text-[12px]">
+              {showMismatch && <span className="text-red-300">Passwords do not match</span>}
+              {passwordsMatch && <span className="text-lime-400/70">Passwords match</span>}
+            </p>
           </div>
         )}
 
