@@ -63,6 +63,12 @@ Athlean-X on its own ground rather than on competition. Out of v1 scope per the-
 Per set: e1RM (Epley, per §6 of the parent spec) and a marker when it beats the stored best
 for that exercise. No points, no qualifying badges, no lobby standing.
 
+**Validated against the incumbent.** Isaac's Hevy screenshots show exactly this pattern — a
+medal on the individual set that earned it, typed by achievement: `1RM` on a 225 lb × 12
+bench, `Weight` on a 280 lb chest fly. Per-set, typed, inline. Worth matching that shape
+rather than inventing one, and worth carrying the type: "heaviest ever" and "best estimated
+1RM" are different achievements and a lifter reads them differently.
+
 **Why.** Every interviewee framed training as self-improvement in their own words — "one up
 myself every day", "the best version of me", "push myself as hard as I can". Personal
 progress serves that and is independent of how the competition thesis resolves.
@@ -111,6 +117,10 @@ auto-fill costs one. Bought with that tap: nothing is ever recorded that the lif
 actively enter. The numbers are self-reported and feed a competition with no referee
 (principle 1), so a value that appears because someone forgot to edit it is worse than a
 value that took an extra tap.
+
+**The repeated set is the common case, confirmed.** Isaac's logs show Triceps Pushdown at
+70 lb × 10 three times and Crunch at 90 lb × 10 four times. Whole exercises are frequently a
+single value repeated, which is what this affordance is for.
 
 ### 3.4 The tracker is local and sticky
 
@@ -205,6 +215,13 @@ templates, offline sync, importing from other trackers, and any competition surf
 Each is defensible later. None is needed to find out whether a lifter will log here rather
 than in Hevy.
 
+**Drop sets are the weakest of these cuts and were reconsidered.** Isaac's screenshots show
+them as his default structure, not an occasional flourish — every working set of weighted
+pull-ups is followed by a drop at bodyweight. Kept out of the v1 logging UI because such a
+set can still be recorded as an ordinary set, so nothing is lost from the training record;
+only the label is missing. The label matters to *scoring*, not to capture, and that decision
+is parked in §9 rather than pre-empted here.
+
 ---
 
 ## 8. Testing
@@ -234,3 +251,18 @@ whichever way it lands.
 **Nobody churned for lack of a rival.** Across all four interviews, the causes were burnout
 and environment. Isaac was already competing with a friend and still lost a week. Whatever
 the weekly meet is for, the evidence does not yet show it is what stops people falling off.
+
+**PARKED — bodyweight loads score zero.** Isaac logs weighted pull-up drop sets at 0 lb added
+weight: bodyweight reps to failure, the hardest work in his session. Epley on a load of zero
+gives an estimated 1RM of zero, so under the qualifying rule (a set's own e1RM must reach 80%
+of baseline) every one of those sets is worth nothing — on the exact lift he competes over,
+for the one clearly competitive user in the research.
+
+Same failure class as Joanna's deliberate technique work and the same violated principle:
+scoring must not degrade real training. It affects every bodyweight or assisted movement,
+where the load that matters is the lifter and the weight field does not carry it.
+
+**Not solvable in this flow.** It is a scoring-layer decision needed before Milestone 3 —
+fold the session's bodyweight snapshot into the load, or exclude bodyweight movements from
+scoring and say so plainly. Logging captures `0` faithfully either way, so this design does
+not block on it. Recorded in full in `.superpowers/research/_TALLY.md`.

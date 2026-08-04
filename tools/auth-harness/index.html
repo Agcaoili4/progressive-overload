@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Auth harness — ProgressiveOverload</title>
+<style>
+  body { font: 15px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+         max-width: 46rem; margin: 3rem auto; padding: 0 1rem;
+         background: #0f1115; color: #d7dae0; }
+  h1 { font-size: 1.1rem; letter-spacing: .02em; }
+  p.sub { color: #8b93a1; }
+  button { font: inherit; padding: .6rem 1.1rem; border: 0; border-radius: 6px;
+           background: #3b82f6; color: white; cursor: pointer; }
+  button:disabled { background: #394150; cursor: default; }
+  .row { padding: .5rem .75rem; margin: .35rem 0; border-radius: 6px;
+         background: #171a21; border-left: 3px solid #394150; white-space: pre-wrap; }
+  .pass { border-left-color: #22c55e; }
+  .fail { border-left-color: #ef4444; }
+  .info { border-left-color: #6b7280; color: #9aa3b2; }
+  .verdict { margin-top: 1.5rem; padding: .75rem 1rem; border-radius: 6px; font-weight: 600; }
+  .allpass { background: #052e16; color: #4ade80; }
+  .anyfail { background: #2e0505; color: #f87171; }
+</style>
+</head>
+<body>
+
+<h1>Auth harness</h1>
+<p class="sub">
+  Throwaway. Exercises the cookie behaviour that integration tests cannot observe, because
+  only a real browser decides whether a cookie is stored, sent, or deleted.
+  Serve this from <code>http://localhost:5173</code> so it matches the CORS allowlist.
+</p>
+
+<p><button id="run">Run all checks</button></p>
+<div id="out"></div>
+<div id="verdict"></div>
+
+<script>
+const API = "http://localhost:5055/api/v1";
+const out = document.getElementById("out");
+const results = [];
+
+function log(status, label, detail) {
+  const el = document.createElement("div");
+  el.className = "row " + status;
+  el.textContent = (status === "pass" ? "PASS  " : status === "fail" ? "FAIL  " : "      ")
+                 + label + (detail ? "\n      " + detail : "");
+  out.appendChild(el);
+  if (status === "pass" || status === "fail") results.push(status);
+}
+
+/* credentials:include is what makes the browser store and send the refresh cookie. */
+const call = (path, options = {}) =>
+  fetch(API + path, { credentials: "include", ...options });
+
+const json = (body) => ({
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body)
+});
+
+async function run() {
+  out.innerHTML = "";
+  document.getElementById("verdict").innerHTML = "";
+  results.length = 0;
+
+  const email = `harness-${Date.now()}@example.com`;
+  const password = "correct horse battery staple";
+
+  // 1. Register. Proves CORS with credentials works from a real browser origin.
+  let accessToken;
+  try {
+    const res = await call("/auth/register", json({ email, password, displayName: "Harness" }));
+    if (!res.ok) return log("fail", "register", `expected 201, got ${res.status}`);
+    accessToken = (await res.json()).accessToken;
+    log("pass", "CORS + credentialed register", `201, origin ${location.origin}`);
+  } catch (e) {
+    return log("fail", "register threw — CORS rejected or API down", String(e));
+  }
+
+  // 2. The refresh cookie must be invisible to script. Any XSS otherwise owns the session.
+  document.cookie.includes("po_refresh")
+    ? log("fail", "httpOnly", "po_refresh is readable from document.cookie")
+    : log("pass", "httpOnly holds", "po_refresh absent from document.cookie");
+
+  // 3. The access token authenticates a normal request.
+  const me = await call("/me", { headers: { Authorization: "Bearer " + accessToken } });
+  me.ok ? log("pass", "GET /me with bearer token", `${me.status}`)
+        : log("fail", "GET /me with bearer token", `expected 200, got ${me.status}`);
+
+  /*
+      4. The cookie is Secure, and this page is plain http. If the browser refused to store
+      it on that basis, refresh has nothing to send and fails — so this passing is what
+      proves localhost is treated as a trustworthy origin. Rotation is proven by the token
+      coming back different.
+  */
+  const refreshed = await call("/auth/refresh", { method: "POST" });
+  if (!refreshed.ok) {
+    log("fail", "refresh", `expected 200, got ${refreshed.status} — cookie was not stored or not sent`);
+  } else {
+    const rotated = (await refreshed.json()).accessToken;
+    log("pass", "Secure cookie stored over http://localhost", "refresh reached the server");
+    rotated && rotated !== accessToken
+      ? log("pass", "refresh rotated the token", "new access token differs")
+      : log("fail", "refresh rotated the token", "same token returned");
+  }
+
+  // 5. SameSite=Strict, cross-origin but same-site. Sent, or the refresh above would 401.
+  log("info", "SameSite=Strict, Path=/api/v1/auth", "cookie survived a cross-origin same-site call");
+
+  const loggedOut = await call("/auth/logout", { method: "POST" });
+  loggedOut.status === 204
+    ? log("pass", "logout returned 204", "")
+    : log("fail", "logout returned 204", `got ${loggedOut.status}`);
+
+  /*
+      Logout revokes the token family server-side AND clears the cookie, so a 401 here
+      proves only that the session is dead — it would return 401 just the same if the
+      browser had kept the cookie forever. Cookie deletion cannot be asserted from script,
+      because httpOnly is doing its job. It is a manual check, called out rather than
+      quietly claimed.
+  */
+  const afterLogout = await call("/auth/refresh", { method: "POST" });
+  afterLogout.status === 401
+    ? log("pass", "session is dead after logout", "refresh is 401 (server-side revocation)")
+    : log("fail", "SESSION SURVIVED LOGOUT", `refresh returned ${afterLogout.status}`);
+
+  log("info", "MANUAL — cookie deletion cannot be checked from script",
+      "DevTools > Application > Cookies > http://localhost:5055\n"
+      + "      po_refresh must be ABSENT. If it is still listed, the delete options do not\n"
+      + "      mirror the set options and logout leaves a cookie on a shared machine.");
+
+  const failed = results.filter(r => r === "fail").length;
+  const v = document.getElementById("verdict");
+  v.className = "verdict " + (failed ? "anyfail" : "allpass");
+  v.textContent = failed
+    ? `${failed} check(s) FAILED — copy the lines above`
+    : `All ${results.length} checks passed`;
+}
+
+document.getElementById("run").addEventListener("click", async (e) => {
+  e.target.disabled = true;
+  try { await run(); } finally { e.target.disabled = false; }
+});
+</script>
+
+</body>
+</html>
