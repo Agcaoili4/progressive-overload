@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Barbell Bench Press — recalibrated</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { background:#0a0a0a; overscroll-behavior:none; }
+  * { -webkit-tap-highlight-color: transparent; }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* Wheel picker. Fixed item height drives the maths in JS — keep them in sync. */
+  .wheel {
+    height: 156px;              /* 3 items */
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+  }
+  .wheel::-webkit-scrollbar { display: none; }
+  .wheel-item {
+    height: 52px;
+    scroll-snap-align: center;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 1.375rem;
+    color: rgba(255,255,255,0.25);
+    transition: color .12s, font-size .12s;
+  }
+  /* Design 2's scale: the live value is the largest thing on the screen. */
+  .wheel-item.sel {
+    color: #fff;
+    font-size: 2.5rem;
+    letter-spacing: -0.02em;
+  }
+  .wheel-spacer { height: 52px; }
+
+  /* Double-tap to type. The wheel steps in 2.5s; typing is the only way to reach
+     an off-grid load like 83.75, so the typed value is kept rather than snapped. */
+  .type-input {
+    position: absolute; left: 8px; right: 8px; top: 50%;
+    transform: translateY(-50%);
+    height: 52px; z-index: 20;
+    background: #0a0a0a; border: 2px solid #a3e635; border-radius: 8px;
+    color: #fff; font-weight: 800; font-size: 2.5rem; text-align: center;
+    font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
+    outline: none; display: none; width: calc(100% - 16px);
+  }
+  .editing .type-input { display: block; }
+  .editing .wheel { opacity: .25; }
+
+  /* Collapsible deck */
+  .deck-body { transition: max-height .28s ease, opacity .2s ease; overflow: hidden; }
+  .deck-open  .deck-body { max-height: 420px; opacity: 1; }
+  .deck-closed .deck-body { max-height: 0; opacity: 0; }
+  .deck-closed .chev { transform: rotate(180deg); }
+  .chev { transition: transform .28s ease; }
+</style>
+</head>
+<body class="bg-[#0a0a0a] text-white font-sans">
+
+<div class="mx-auto flex h-[100dvh] max-w-md flex-col">
+
+  <!-- ============ HEADER ============ -->
+  <header class="flex flex-none items-center gap-3 border-b border-white/10 px-4 py-2.5">
+    <button aria-label="Back" class="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white/5 active:bg-white/10">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <div class="min-w-0 flex-1">
+      <p class="text-[10px] font-semibold uppercase tracking-wider text-white/40">Push Day A · 3 of 6</p>
+      <h1 class="truncate text-lg font-extrabold leading-tight">Barbell Bench Press</h1>
+    </div>
+  </header>
+
+  <!-- ============ LEDGER (scrolls, yields space when the deck collapses) ============ -->
+  <main class="min-h-0 flex-1 overflow-y-auto px-4 pt-3">
+
+    <p class="mb-3 flex items-center gap-1.5 text-[13px] text-white/35">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
+      <span class="truncate">Last time: 80kg × 8, 80kg × 7, 80kg × 6</span>
+    </p>
+
+    <p class="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-white/40">This session</p>
+
+    <div class="space-y-2 pb-4">
+      <!-- plain set -->
+      <div class="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.04] px-3 py-2.5">
+        <span class="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-white/5 text-xs font-bold text-white/50">1</span>
+        <p class="tnum text-xl font-extrabold">80<span class="ml-0.5 text-sm font-semibold text-white/40">kg</span><span class="mx-1.5 font-medium text-white/25">×</span>8</p>
+      </div>
+
+      <!-- TYPED badge: heaviest load ever for this lift -->
+      <div class="flex items-center gap-3 rounded-xl border border-amber-400/25 bg-amber-400/[0.06] px-3 py-2.5">
+        <span class="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-amber-400/10 text-xs font-bold text-amber-300">2</span>
+        <p class="tnum text-xl font-extrabold">82.5<span class="ml-0.5 text-sm font-semibold text-white/40">kg</span><span class="mx-1.5 font-medium text-white/25">×</span>8</p>
+        <span class="ml-auto flex flex-none items-center gap-1 rounded-full bg-amber-400 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-black">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2l-3 3v4a5 5 0 0 1-10 0v-4L4 8z"/></svg>
+          Weight
+        </span>
+      </div>
+
+      <!-- TYPED badge: best estimated 1RM. Different achievement, different word. -->
+      <div class="flex items-center gap-3 rounded-xl border border-lime-400/25 bg-lime-400/[0.06] px-3 py-2.5">
+        <span class="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-lime-400/10 text-xs font-bold text-lime-300">3</span>
+        <p class="tnum text-xl font-extrabold">82.5<span class="ml-0.5 text-sm font-semibold text-white/40">kg</span><span class="mx-1.5 font-medium text-white/25">×</span>9</p>
+        <span class="ml-auto flex flex-none items-center gap-1 rounded-full bg-lime-400 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-black">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.3 6.6 1-4.9 4.5 1.3 6.7L12 17.3 6.1 20.5l1.3-6.7L2.5 9.3l6.6-1z"/></svg>
+          1RM
+        </span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ============ CONTROL DECK — collapsible, and the handle really works ============ -->
+  <section id="deck" class="deck-open flex-none rounded-t-3xl border-t border-white/10 bg-[#141416] shadow-[0_-12px_32px_-8px_rgba(0,0,0,0.7)]">
+
+    <!-- Real affordance: tap or drag to collapse. Frees the ledger on a 667px screen. -->
+    <button id="handle" aria-label="Collapse controls" aria-expanded="true"
+            class="flex w-full flex-col items-center gap-1 px-4 pb-1 pt-2.5 active:bg-white/[0.03]">
+      <span class="h-1 w-10 rounded-full bg-white/20"></span>
+      <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(255,255,255,.28)"><path d="M6 15l6-6 6 6"/></svg>
+    </button>
+
+    <div class="deck-body px-4">
+      <!-- Rest timer: slim, one line -->
+      <div class="mb-3 flex items-center gap-3 rounded-xl border border-white/5 bg-black/40 px-3 py-2">
+        <svg viewBox="0 0 36 36" class="h-8 w-8 flex-none -rotate-90"><circle cx="18" cy="18" r="15" fill="none" stroke="white" stroke-opacity=".08" stroke-width="4"/><circle cx="18" cy="18" r="15" fill="none" stroke="#a3e635" stroke-width="4" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="22"/></svg>
+        <p class="tnum text-xl font-extrabold leading-none">1:24</p>
+        <p class="text-[10px] font-semibold uppercase tracking-wider text-white/35">rest</p>
+        <button class="ml-auto rounded-full bg-white/5 px-3 py-1.5 text-xs font-bold text-white/50 active:bg-white/10">Skip</button>
+      </div>
+
+      <!-- Wheels. Flinging beats stepping: 60 → 225 is a flick, not 66 taps. -->
+      <div class="mb-3 grid grid-cols-2 gap-3">
+        <div id="boxWeight" class="relative rounded-xl border border-white/5 bg-black/40 pt-1">
+          <p class="text-center text-[10px] font-bold uppercase tracking-wider text-white/40">Weight · kg</p>
+          <div class="pointer-events-none absolute inset-x-2 top-1/2 z-10 h-[52px] -translate-y-1/2 rounded-lg border-y border-lime-400/25 bg-lime-400/[0.04]"></div>
+          <div id="wheelWeight" class="wheel tnum"></div>
+          <input id="inputWeight" class="type-input" inputmode="decimal" enterkeyhint="done" aria-label="Type weight" />
+        </div>
+        <div id="boxReps" class="relative rounded-xl border border-white/5 bg-black/40 pt-1">
+          <p class="text-center text-[10px] font-bold uppercase tracking-wider text-white/40">Reps</p>
+          <div class="pointer-events-none absolute inset-x-2 top-1/2 z-10 h-[52px] -translate-y-1/2 rounded-lg border-y border-lime-400/25 bg-lime-400/[0.04]"></div>
+          <div id="wheelReps" class="wheel tnum"></div>
+          <input id="inputReps" class="type-input" inputmode="numeric" enterkeyhint="done" aria-label="Type reps" />
+        </div>
+      </div>
+
+      <p class="mb-2 text-center text-[10px] font-medium uppercase tracking-wider text-white/25">Double-tap a number to type it</p>
+
+      <!-- (previous) states what it will apply, so nothing is logged unseen -->
+      <button id="prev" class="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-white/5 bg-white/5 py-2.5 active:bg-white/10">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(255,255,255,.5)"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        <span class="text-sm font-bold text-white/60">(previous)</span>
+        <span id="prevLabel" class="tnum text-sm font-bold text-white/35">82.5kg × 9</span>
+      </button>
+    </div>
+
+    <!-- Primary action stays visible whether the deck is open or shut -->
+    <div class="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-1">
+      <button class="w-full rounded-2xl bg-lime-400 py-4 text-xl font-extrabold tracking-tight text-black shadow-[0_8px_24px_-6px_rgba(163,230,53,0.45)] active:scale-[0.98] active:bg-lime-300">
+        Log Set <span id="logSummary" class="tnum font-bold opacity-60">· 82.5kg × 9</span>
+      </button>
+    </div>
+  </section>
+</div>
+
+<script>
+const ITEM = 52;   /* must equal .wheel-item height in CSS */
+
+/* Builds a snap wheel. Values are generated, not hand-listed, so the range is one place. */
+function wheel(el, { min, max, step, value, onChange }) {
+  let vals = [];
+  let items = [];
+
+  const generate = () => {
+    const out = [];
+    for (let v = min; v <= max; v = +(v + step).toFixed(2)) out.push(v);
+    return out;
+  };
+
+  const render = () => {
+    el.innerHTML =
+      '<div class="wheel-spacer"></div>' +
+      vals.map(v => `<div class="wheel-item" data-v="${v}">${v}</div>`).join('') +
+      '<div class="wheel-spacer"></div>';
+    items = [...el.querySelectorAll('.wheel-item')];
+  };
+
+  const paint = (i) => {
+    items.forEach((n, k) => n.classList.toggle('sel', k === i));
+    onChange(vals[i]);
+  };
+
+  // scrollTop maps 1:1 to index because the spacer is exactly one item tall.
+  let raf;
+  el.addEventListener('scroll', () => {
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(() => {
+      const i = Math.max(0, Math.min(vals.length - 1, Math.round(el.scrollTop / ITEM)));
+      paint(i);
+    });
+  }, { passive: true });
+
+  /*
+      A typed value off the step grid — 83.75 on a 2.5 wheel — is inserted rather than
+      rounded to the nearest notch. Silently changing a number the lifter typed is the one
+      behaviour this control must never have; the whole point of typing is to reach a value
+      the wheel cannot.
+  */
+  const set = (v) => {
+    v = Math.min(max, Math.max(min, v));
+    if (!vals.includes(v)) {
+      vals = generate();
+      vals.push(v);
+      vals.sort((a, b) => a - b);
+      render();
+    }
+    const i = vals.indexOf(v);
+    el.scrollTop = i * ITEM;
+    paint(i);
+  };
+
+  vals = generate();
+  render();
+  set(value);
+  return { set };
+}
+
+/* Double-tap opens a keypad. dblclick covers desktop; touch needs manual timing. */
+function typable(box, input, wheelApi, { integer = false, current }) {
+  const open = () => {
+    box.classList.add('editing');
+    input.value = String(current());
+    input.focus();
+    input.select();
+  };
+  const close = (commit) => {
+    if (commit) {
+      const n = parseFloat(input.value);
+      if (!Number.isNaN(n)) wheelApi.set(integer ? Math.round(n) : n);
+    }
+    box.classList.remove('editing');
+  };
+
+  box.addEventListener('dblclick', open);
+
+  let last = 0;
+  box.addEventListener('touchend', (e) => {
+    if (box.classList.contains('editing')) return;
+    const now = Date.now();
+    if (now - last < 320) { e.preventDefault(); open(); }
+    last = now;
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') close(true);
+    if (e.key === 'Escape') close(false);
+  });
+  input.addEventListener('blur', () => close(true));
+}
+
+const state = { weight: 82.5, reps: 9, prevWeight: 82.5, prevReps: 9 };
+const summary = () => {
+  const s = `· ${state.weight}kg × ${state.reps}`;
+  document.getElementById('logSummary').textContent = s;
+};
+
+const W = wheel(document.getElementById('wheelWeight'),
+  { min: 0, max: 1000, step: 2.5, value: state.weight, onChange: v => { state.weight = v; summary(); } });
+
+const R = wheel(document.getElementById('wheelReps'),
+  { min: 1, max: 100, step: 1, value: state.reps, onChange: v => { state.reps = v; summary(); } });
+
+typable(document.getElementById('boxWeight'), document.getElementById('inputWeight'), W,
+  { current: () => state.weight });
+typable(document.getElementById('boxReps'), document.getElementById('inputReps'), R,
+  { integer: true, current: () => state.reps });
+
+document.getElementById('prev').addEventListener('click', () => {
+  W.set(state.prevWeight);
+  R.set(state.prevReps);
+});
+document.getElementById('prevLabel').textContent = `${state.prevWeight}kg × ${state.prevReps}`;
+
+/* The handle is a real control: tap, or drag it down, to collapse. */
+const deck = document.getElementById('deck');
+const handle = document.getElementById('handle');
+const toggle = (open) => {
+  deck.classList.toggle('deck-open', open);
+  deck.classList.toggle('deck-closed', !open);
+  handle.setAttribute('aria-expanded', String(open));
+  handle.setAttribute('aria-label', open ? 'Collapse controls' : 'Expand controls');
+};
+handle.addEventListener('click', () => toggle(deck.classList.contains('deck-closed')));
+
+let y0 = null;
+handle.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, { passive: true });
+handle.addEventListener('touchmove', e => {
+  if (y0 === null) return;
+  const dy = e.touches[0].clientY - y0;
+  if (Math.abs(dy) > 24) { toggle(dy < 0); y0 = null; }
+}, { passive: true });
+handle.addEventListener('touchend', () => { y0 = null; }, { passive: true });
+</script>
+</body>
+</html>
