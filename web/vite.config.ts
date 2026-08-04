@@ -14,6 +14,12 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
+    /*
+        Fail rather than drift. The API allows exactly one dev origin, so a second instance
+        quietly taking 5174 does not look like a port clash — it looks like CORS is broken,
+        several minutes later, in the browser console. Refusing to start says what is wrong.
+    */
+    strictPort: true,
     https: {
       key: fs.readFileSync('./certs/localhost.key'),
       cert: fs.readFileSync('./certs/localhost.pem'),
