@@ -11,6 +11,9 @@ type AuthState = {
   logout: () => Promise<void>;
   token: () => string | null;
   refreshProfile: () => Promise<void>;
+  /* True only after a fresh registration, so returning users are never asked again. */
+  needsOnboarding: boolean;
+  completeOnboarding: () => void;
 };
 
 const Ctx = createContext<AuthState | null>(null);
@@ -24,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const accessToken = useRef<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   const adopt = useCallback(async (auth: AuthResponse) => {
     accessToken.current = auth.accessToken;
@@ -50,18 +54,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value: AuthState = {
     profile,
     loading,
-    register: async (email, password, displayName) =>
-      adopt(await api.register(email, password, displayName)),
+    register: async (email, password, displayName) => {
+      await adopt(await api.register(email, password, displayName));
+      setNeedsOnboarding(true);
+    },
     login: async (email, password) => adopt(await api.login(email, password)),
     logout: async () => {
       await api.logout();
       accessToken.current = null;
       setProfile(null);
+      setNeedsOnboarding(false);
     },
     token: () => accessToken.current,
     refreshProfile: async () => {
       if (accessToken.current) setProfile(await api.me(accessToken.current));
     },
+    needsOnboarding,
+    completeOnboarding: () => setNeedsOnboarding(false),
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
