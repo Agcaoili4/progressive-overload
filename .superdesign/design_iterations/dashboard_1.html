@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Dashboard — ProgressiveOverload</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { background:#0a0a0a; }
+  * { -webkit-tap-highlight-color: transparent; }
+  .tnum { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body class="bg-[#0a0a0a] text-white font-sans">
+
+<div class="mx-auto flex h-[100dvh] max-w-md flex-col">
+
+  <!-- ============ HEADER ============ -->
+  <header class="flex flex-none items-center gap-3 px-4 pb-2 pt-4">
+    <div class="min-w-0 flex-1">
+      <p class="text-[10px] font-semibold uppercase tracking-wider text-white/40">Wednesday · 4 August</p>
+      <h1 class="text-2xl font-extrabold leading-tight">Evening, Jansen</h1>
+    </div>
+    <button aria-label="Profile" class="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-white/5 text-sm font-bold text-white/70 active:bg-white/10">JA</button>
+  </header>
+
+  <main class="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+
+    <!--
+      The action comes first, above any read-only panel. Every interview said the same
+      thing: people open a training app to train, and the fastest path to a logged set is
+      "the same as last time, then edit".
+    -->
+    <section class="overflow-hidden rounded-3xl border border-lime-400/20 bg-gradient-to-b from-lime-400/[0.09] to-lime-400/[0.02]">
+      <div class="px-5 pt-5">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-lime-300/70">Up next</p>
+        <div class="mt-1 flex items-baseline gap-2">
+          <h2 class="text-2xl font-extrabold leading-tight">Push Day A</h2>
+          <span class="text-[13px] font-medium text-white/35">last done 3d ago</span>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-1.5">
+          <span class="rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/55">Bench Press</span>
+          <span class="rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/55">Overhead Press</span>
+          <span class="rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/40">+4 more</span>
+        </div>
+      </div>
+      <div class="px-5 pb-5 pt-4">
+        <button class="w-full rounded-2xl bg-lime-400 py-4 text-lg font-extrabold tracking-tight text-black shadow-[0_8px_24px_-6px_rgba(163,230,53,0.45)] active:scale-[0.98]">
+          Start this session
+        </button>
+        <button class="mt-2 w-full py-2 text-[13px] font-bold text-white/40 active:text-white/70">
+          Start something else
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ THIS WEEK ============ -->
+    <div class="mb-2 mt-7 flex items-baseline justify-between px-1">
+      <p class="text-[10px] font-bold uppercase tracking-wider text-white/40">This week</p>
+      <p class="text-[11px] font-medium text-white/25">Mon 2 — Sun 8</p>
+    </div>
+
+    <div class="grid grid-cols-3 gap-2">
+      <div class="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-3">
+        <p class="tnum text-2xl font-extrabold leading-none">3<span class="text-sm font-bold text-white/30">/4</span></p>
+        <p class="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-white/35">Sessions</p>
+      </div>
+      <div class="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-3">
+        <p class="tnum text-2xl font-extrabold leading-none">24</p>
+        <p class="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-white/35">Hard sets</p>
+      </div>
+      <div class="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-3 py-3">
+        <p class="tnum text-2xl font-extrabold leading-none text-lime-300">2</p>
+        <p class="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-white/35">PRs</p>
+      </div>
+    </div>
+
+    <!--
+      Sessions 1-4 carry full weight, 5-6 less, 7+ nothing. Saying so turns a number into
+      guidance instead of leaving the lifter to reverse-engineer the curve.
+    -->
+    <p class="mt-2 px-1 text-[11px] leading-relaxed text-white/30">
+      One more session counts in full. After that they start counting for less — the score
+      stops rewarding extra days on purpose.
+    </p>
+
+    <!-- ============ THE MEET ============ -->
+    <div class="mb-2 mt-7 flex items-baseline justify-between px-1">
+      <p class="text-[10px] font-bold uppercase tracking-wider text-white/40">The Monday Club</p>
+      <button class="text-[12px] font-bold text-white/35 active:text-white/60">Full board</button>
+    </div>
+
+    <button class="w-full rounded-2xl border border-white/[0.07] bg-white/[0.03] px-4 py-4 text-left active:bg-white/[0.06]">
+      <div class="flex items-baseline gap-2">
+        <p class="tnum text-3xl font-extrabold leading-none">2<span class="text-base font-bold text-white/30">nd</span></p>
+        <p class="text-[13px] font-medium text-white/40">of 6 · 4 days left</p>
+      </div>
+
+      <!-- Gap to first, which is the only number that changes behaviour this week. -->
+      <div class="mt-3 space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="w-14 flex-none text-[11px] font-bold text-white/35">Marcus</span>
+          <div class="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+            <div class="h-full rounded-full bg-white/25" style="width:100%"></div>
+          </div>
+          <span class="tnum w-10 flex-none text-right text-[11px] font-bold text-white/45">610</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-14 flex-none text-[11px] font-bold text-lime-300">You</span>
+          <div class="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+            <div class="h-full rounded-full bg-lime-400" style="width:88%"></div>
+          </div>
+          <span class="tnum w-10 flex-none text-right text-[11px] font-bold text-lime-300">540</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-14 flex-none text-[11px] font-bold text-white/35">Priya</span>
+          <div class="h-2 flex-1 overflow-hidden rounded-full bg-white/[0.06]">
+            <div class="h-full rounded-full bg-white/25" style="width:79%"></div>
+          </div>
+          <span class="tnum w-10 flex-none text-right text-[11px] font-bold text-white/45">485</span>
+        </div>
+      </div>
+
+      <p class="mt-3 border-t border-white/[0.07] pt-2.5 text-[12px] text-white/35">
+        70 behind Marcus — about two hard sessions.
+      </p>
+    </button>
+
+    <!-- ============ RECENT PRs ============ -->
+    <div class="mb-2 mt-7 flex items-baseline justify-between px-1">
+      <p class="text-[10px] font-bold uppercase tracking-wider text-white/40">Recent records</p>
+    </div>
+
+    <div class="space-y-2">
+      <div class="flex items-center gap-3 rounded-2xl border border-lime-400/20 bg-lime-400/[0.05] px-4 py-3">
+        <span class="flex-none rounded-full bg-lime-400 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-black">1RM</span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-[14px] font-bold">Bench Press</p>
+          <p class="tnum text-[12px] text-white/35">82.5kg × 9 · yesterday</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/[0.05] px-4 py-3">
+        <span class="flex-none rounded-full bg-amber-400 px-2 py-1 text-[10px] font-extrabold uppercase tracking-wide text-black">Weight</span>
+        <div class="min-w-0 flex-1">
+          <p class="truncate text-[14px] font-bold">Deadlift</p>
+          <p class="tnum text-[12px] text-white/35">140kg × 5 · 3 days ago</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ BODYWEIGHT ============ -->
+    <div class="mt-7 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-4 py-4">
+      <div class="flex items-start justify-between">
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-white/40">Bodyweight</p>
+          <p class="tnum mt-1 text-2xl font-extrabold leading-none">84.5<span class="text-sm font-bold text-white/35">kg</span></p>
+          <p class="mt-1 text-[11px] text-white/30">+0.4 over 30 days</p>
+        </div>
+        <svg viewBox="0 0 120 40" class="h-12 w-32 flex-none" aria-hidden="true">
+          <polyline points="0,28 20,26 40,29 60,22 80,24 100,18 120,20"
+                    fill="none" stroke="#a3e635" stroke-width="2.5"
+                    stroke-linecap="round" stroke-linejoin="round" opacity="0.8" />
+        </svg>
+      </div>
+      <button class="mt-3 w-full rounded-xl bg-white/5 py-2.5 text-[12px] font-bold text-white/55 active:bg-white/10">
+        Log today's weight
+      </button>
+    </div>
+
+    <div class="h-2"></div>
+  </main>
+
+  <!-- ============ NAV ============ -->
+  <nav class="flex flex-none items-stretch border-t border-white/10 bg-[#0e0e10] pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2">
+    <button class="flex flex-1 flex-col items-center gap-1 py-1 text-lime-400">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10l9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      <span class="text-[10px] font-bold">Home</span>
+    </button>
+    <button class="flex flex-1 flex-col items-center gap-1 py-1 text-white/35 active:text-white/60">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      <span class="text-[10px] font-bold">History</span>
+    </button>
+    <button class="flex flex-1 flex-col items-center gap-1 py-1 text-white/35 active:text-white/60">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      <span class="text-[10px] font-bold">Lobby</span>
+    </button>
+    <button class="flex flex-1 flex-col items-center gap-1 py-1 text-white/35 active:text-white/60">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      <span class="text-[10px] font-bold">Profile</span>
+    </button>
+  </nav>
+
+</div>
+</body>
+</html>
