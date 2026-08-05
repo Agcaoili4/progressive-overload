@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+html, body, #root { background: #0a0a0a; height: 100%; }
+* { -webkit-tap-highlight-color: transparent; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+.wheel {
+  height: 156px;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+}
+.wheel::-webkit-scrollbar { display: none; }
