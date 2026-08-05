@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ProgressiveOverload — six lifters, one week, one winner</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html { scroll-behavior: smooth; background: #0a0a0a; }
+  * { -webkit-tap-highlight-color: transparent; }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .grain { background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.06) 1px, transparent 0); background-size: 28px 28px; }
+</style>
+</head>
+<body class="bg-[#0a0a0a] text-white font-sans antialiased">
+
+<!-- ============ NAV ============ -->
+<nav class="sticky top-0 z-40 border-b border-white/[0.07] bg-[#0a0a0a]/85 backdrop-blur">
+  <div class="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3.5">
+    <span class="text-[15px] font-extrabold tracking-tight">ProgressiveOverload</span>
+    <a href="#scoring" class="ml-auto hidden text-[13px] font-semibold text-white/45 hover:text-white/80 sm:block">How scoring works</a>
+    <a href="#status" class="hidden text-[13px] font-semibold text-white/45 hover:text-white/80 sm:block">Status</a>
+    <a href="#join" class="rounded-full bg-white/10 px-4 py-2 text-[13px] font-bold hover:bg-white/15">Get early access</a>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="grain relative overflow-hidden border-b border-white/[0.07]">
+  <div class="mx-auto max-w-6xl px-5 pb-20 pt-16 sm:pb-28 sm:pt-24">
+    <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-lime-300/70">The weekly meet</p>
+
+    <h1 class="mt-4 max-w-3xl text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
+      Six lifters.<br />One week.<br /><span class="text-lime-400">One winner.</span>
+    </h1>
+
+    <p class="mt-7 max-w-xl text-lg leading-relaxed text-white/50">
+      You already compete with someone — a friend, a brother, the guy on the next rack.
+      Nobody keeps score. Every Monday everyone in your lobby starts at zero. Sunday night,
+      one of you wins the week.
+    </p>
+
+    <div class="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+      <a href="#join" class="rounded-2xl bg-lime-400 px-7 py-4 text-center text-lg font-extrabold tracking-tight text-black transition hover:bg-lime-300 active:scale-[0.98]">
+        Get early access
+      </a>
+      <a href="#scoring" class="rounded-2xl border border-white/15 px-7 py-4 text-center text-lg font-bold text-white/70 transition hover:border-white/30 hover:text-white">
+        See how scoring works
+      </a>
+    </div>
+
+    <p class="mt-5 text-[13px] text-white/30">
+      Private lobbies by invite code. Six people is enough — no waiting for a crowd.
+    </p>
+  </div>
+</header>
+
+<!-- ============ THE GAP ============ -->
+<section class="border-b border-white/[0.07]">
+  <div class="mx-auto grid max-w-6xl gap-10 px-5 py-16 sm:py-24 md:grid-cols-2 md:gap-16">
+    <div>
+      <h2 class="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+        Tracking apps log the work.<br />None of them settle anything.
+      </h2>
+      <p class="mt-5 text-[15px] leading-relaxed text-white/50">
+        You can already see a friend's workout. What you cannot do is finish the week and
+        find out who actually did more — so the rivalry stays a running joke that quietly
+        fizzles out.
+      </p>
+      <p class="mt-4 text-[15px] leading-relaxed text-white/50">
+        A meet has a start, a finish and a result. That is the entire difference.
+      </p>
+    </div>
+
+    <div class="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6">
+      <p class="text-[10px] font-bold uppercase tracking-wider text-white/35">A week, start to finish</p>
+      <ol class="mt-5 space-y-5">
+        <li class="flex gap-4">
+          <span class="tnum flex h-8 w-8 flex-none items-center justify-center rounded-full bg-lime-400/10 text-sm font-extrabold text-lime-300">1</span>
+          <div>
+            <p class="font-bold">Monday, everyone resets</p>
+            <p class="mt-0.5 text-[14px] text-white/45">Last week's winner starts level with everyone else.</p>
+          </div>
+        </li>
+        <li class="flex gap-4">
+          <span class="tnum flex h-8 w-8 flex-none items-center justify-center rounded-full bg-lime-400/10 text-sm font-extrabold text-lime-300">2</span>
+          <div>
+            <p class="font-bold">Train and log as usual</p>
+            <p class="mt-0.5 text-[14px] text-white/45">Your sets score themselves. Nothing extra to do.</p>
+          </div>
+        </li>
+        <li class="flex gap-4">
+          <span class="tnum flex h-8 w-8 flex-none items-center justify-center rounded-full bg-lime-400/10 text-sm font-extrabold text-lime-300">3</span>
+          <div>
+            <p class="font-bold">Sunday night, it resolves</p>
+            <p class="mt-0.5 text-[14px] text-white/45">One winner, recorded. Then it starts again.</p>
+          </div>
+        </li>
+      </ol>
+      <p class="mt-6 border-t border-white/[0.07] pt-4 text-[13px] text-white/35">
+        Finishing fifth means you lost <em class="not-italic text-white/55">this week</em> — which is
+        the point. Nobody is ever out of it.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCORING ============ -->
+<section id="scoring" class="border-b border-white/[0.07] bg-white/[0.015]">
+  <div class="mx-auto max-w-6xl px-5 py-16 sm:py-24">
+    <h2 class="max-w-2xl text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
+      The score is designed so that winning it means you trained well.
+    </h2>
+    <p class="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/50">
+      Most fitness scoring rewards whoever grinds hardest. This one has caps, and they are
+      deliberate — if the best strategy for points were bad training, the scoring would be wrong.
+    </p>
+
+    <div class="mt-10 grid gap-4 md:grid-cols-3">
+      <div class="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-6">
+        <div class="flex items-baseline justify-between">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-lime-300/70">Consistency</p>
+          <p class="tnum text-[13px] font-bold text-white/30">~40%</p>
+        </div>
+        <p class="mt-3 font-bold">Showing up, with a ceiling</p>
+        <p class="mt-2 text-[14px] leading-relaxed text-white/45">
+          Your first four sessions carry the most. The fifth and sixth count for less. The
+          seventh counts for nothing.
+        </p>
+        <p class="mt-3 text-[13px] text-white/30">
+          You cannot win by training ten times a week — which is neither healthy nor fair on
+          anyone with a job.
+        </p>
+      </div>
+
+      <div class="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-6">
+        <div class="flex items-baseline justify-between">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-lime-300/70">Effort</p>
+          <p class="tnum text-[13px] font-bold text-white/30">~40%</p>
+        </div>
+        <p class="mt-3 font-bold">Hard sets, not tonnage</p>
+        <p class="mt-2 text-[14px] leading-relaxed text-white/45">
+          A set counts when it is genuinely close to your own capacity — so warmups are
+          excluded automatically, and a heavier person has no built-in advantage.
+        </p>
+        <p class="mt-3 text-[13px] text-white/30">
+          Capped per muscle group, so twenty sets of curls wins nothing.
+        </p>
+      </div>
+
+      <div class="rounded-2xl border border-white/[0.08] bg-[#0a0a0a] p-6">
+        <div class="flex items-baseline justify-between">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-lime-300/70">Progress</p>
+          <p class="tnum text-[13px] font-bold text-white/30">~20%</p>
+        </div>
+        <p class="mt-3 font-bold">A PR is a PR</p>
+        <p class="mt-2 text-[14px] leading-relaxed text-white/45">
+          Beating your own best pays a flat amount. Five pounds and two hundred pounds are
+          worth exactly the same.
+        </p>
+        <p class="mt-3 text-[13px] text-white/30">
+          Which is also why lying is pointless: an invented number earns what an honest one
+          earns.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROMISES ============ -->
+<section class="border-b border-white/[0.07]">
+  <div class="mx-auto max-w-6xl px-5 py-16 sm:py-24">
+    <h2 class="text-3xl font-extrabold tracking-tight sm:text-4xl">Things this will never do</h2>
+    <div class="mt-9 grid gap-x-12 gap-y-8 sm:grid-cols-2">
+      <div>
+        <p class="font-bold">Punish you for resting</p>
+        <p class="mt-1.5 text-[14px] leading-relaxed text-white/45">
+          Declare a rest week and you sit it out — no score, no loss, nothing broken. Real
+          programmes deload, and a system that penalises recovery is harming its users.
+        </p>
+      </div>
+      <div>
+        <p class="font-bold">Sell anything that changes a result</p>
+        <p class="mt-1.5 text-[14px] leading-relaxed text-white/45">
+          No point boosts, no multipliers, no paid streak saves. The moment money moves a
+          ranking, every ranking is meaningless.
+        </p>
+      </div>
+      <div>
+        <p class="font-bold">Make you beat a stranger</p>
+        <p class="mt-1.5 text-[14px] leading-relaxed text-white/45">
+          Lobbies are private and joined by invite code. You compete with people you know,
+          which is the only version of this anyone actually wants.
+        </p>
+      </div>
+      <div>
+        <p class="font-bold">Reward the biggest person in the room</p>
+        <p class="mt-1.5 text-[14px] leading-relaxed text-white/45">
+          Effort is measured against your own capacity, not an absolute number. A beginner
+          and a lifter of ten years can win the same week.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HONEST STATUS ============ -->
+<section id="status" class="border-b border-white/[0.07] bg-white/[0.015]">
+  <div class="mx-auto max-w-3xl px-5 py-16 sm:py-24">
+    <h2 class="text-3xl font-extrabold tracking-tight sm:text-4xl">Where this actually is</h2>
+    <p class="mt-4 text-[15px] leading-relaxed text-white/50">
+      Being straight with you, because a waitlist that pretends to be a product is how trust
+      goes first.
+    </p>
+
+    <div class="mt-8 space-y-3">
+      <div class="flex items-start gap-3 rounded-xl border border-lime-400/20 bg-lime-400/[0.05] px-4 py-3">
+        <span class="mt-0.5 text-lime-400">✓</span>
+        <p class="text-[14px] text-white/60"><span class="font-bold text-white">Built:</span> accounts, sign-in, and profiles.</p>
+      </div>
+      <div class="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+        <span class="mt-0.5 text-white/30">○</span>
+        <p class="text-[14px] text-white/60"><span class="font-bold text-white/80">In progress:</span> workout logging.</p>
+      </div>
+      <div class="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
+        <span class="mt-0.5 text-white/30">○</span>
+        <p class="text-[14px] text-white/60"><span class="font-bold text-white/80">Next:</span> lobbies, and the weekly meet itself.</p>
+      </div>
+    </div>
+
+    <p class="mt-7 text-[14px] leading-relaxed text-white/40">
+      The first lobbies will be small and hands-on. If you want in early, leave your email —
+      it is used to tell you when there is something to try, and nothing else.
+    </p>
+  </div>
+</section>
+
+<!-- ============ JOIN ============ -->
+<section id="join" class="border-b border-white/[0.07]">
+  <div class="mx-auto max-w-2xl px-5 py-16 text-center sm:py-24">
+    <h2 class="text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">
+      Bring five people<br />you already argue with.
+    </h2>
+    <p class="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-white/50">
+      One lobby is six lifters. That is the whole product — no crowd required, nothing to
+      wait for once it is open.
+    </p>
+
+    <form class="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row" onsubmit="event.preventDefault();">
+      <input type="email" required placeholder="you@example.com"
+             class="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 text-white placeholder:text-white/25 outline-none focus:border-lime-400/50" />
+      <button class="rounded-2xl bg-lime-400 px-7 py-4 text-lg font-extrabold tracking-tight text-black transition hover:bg-lime-300 active:scale-[0.98]">
+        Join
+      </button>
+    </form>
+    <p class="mt-4 text-[12px] text-white/25">No marketing emails. One message when it opens.</p>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer class="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-10 text-[13px] text-white/30 sm:flex-row sm:items-center">
+  <span class="font-bold text-white/45">ProgressiveOverload</span>
+  <span class="sm:ml-auto">
+    <a href="/privacy" class="hover:text-white/60">What we collect</a>
+  </span>
+</footer>
+
+</body>
+</html>
